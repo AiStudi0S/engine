@@ -4,8 +4,9 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const { JWT_SECRET } = require('../config');
+
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'changeme-secret';
 
 router.post('/register', async (req, res) => {
   try {

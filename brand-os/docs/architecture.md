@@ -1,6 +1,6 @@
 # Architecture Reference
 
-See `/brand-os/architecture/system-overview.md` for the full system diagram.
+See [system-overview.md](../architecture/system-overview.md) for the full system diagram.
 
 ## Technology Stack
 
