@@ -40,6 +40,9 @@ resource "aws_subnet" "public" {
 
 data "aws_availability_zones" "available" {}
 
+################################################################################
+# Internet Gateway
+################################################################################
 resource "aws_internet_gateway" "brand_os" {
   vpc_id = aws_vpc.brand_os.id
 
@@ -47,4 +50,76 @@ resource "aws_internet_gateway" "brand_os" {
     Name        = "brand-os-igw"
     Environment = var.environment
   }
+}
+
+################################################################################
+# NAT Gateway (one per AZ for HA; use count = 1 for cost-optimised dev)
+################################################################################
+resource "aws_eip" "nat" {
+  count  = var.nat_gateway_count
+  domain = "vpc"
+
+  tags = {
+    Name        = "brand-os-nat-eip-${count.index}"
+    Environment = var.environment
+  }
+}
+
+resource "aws_nat_gateway" "brand_os" {
+  count         = var.nat_gateway_count
+  allocation_id = aws_eip.nat[count.index].id
+  subnet_id     = aws_subnet.public[count.index].id
+
+  tags = {
+    Name        = "brand-os-nat-${count.index}"
+    Environment = var.environment
+  }
+
+  depends_on = [aws_internet_gateway.brand_os]
+}
+
+################################################################################
+# Route Tables
+################################################################################
+
+# Public subnets → Internet Gateway
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.brand_os.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.brand_os.id
+  }
+
+  tags = {
+    Name        = "brand-os-public-rt"
+    Environment = var.environment
+  }
+}
+
+resource "aws_route_table_association" "public" {
+  count          = length(aws_subnet.public)
+  subnet_id      = aws_subnet.public[count.index].id
+  route_table_id = aws_route_table.public.id
+}
+
+# Private subnets → NAT Gateway
+resource "aws_route_table" "private" {
+  vpc_id = aws_vpc.brand_os.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.brand_os[0].id
+  }
+
+  tags = {
+    Name        = "brand-os-private-rt"
+    Environment = var.environment
+  }
+}
+
+resource "aws_route_table_association" "private" {
+  count          = length(aws_subnet.private)
+  subnet_id      = aws_subnet.private[count.index].id
+  route_table_id = aws_route_table.private.id
 }

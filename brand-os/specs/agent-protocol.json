@@ -8,12 +8,32 @@
     "agent": {
       "type": "string",
       "description": "Unique agent identifier",
-      "examples": ["brand-intelligence-agent", "content-studio-agent"]
+      "examples": [
+        "brand-intelligence-agent",
+        "content-studio-agent",
+        "campaign-strategy-agent",
+        "distribution-agent",
+        "audience-growth-agent",
+        "revenue-optimization-agent",
+        "analytics-agent",
+        "compliance-agent",
+        "persona-creator-agent",
+        "micro-creator-agent-persona_001"
+      ]
     },
     "intent": {
       "type": "string",
       "description": "Action or result intent",
-      "examples": ["analyze_trends", "generate_article", "publish_content"]
+      "examples": [
+        "analyze_trends",
+        "trends_analyzed",
+        "generate_article",
+        "article_generated",
+        "publish_content",
+        "content_published",
+        "check_compliance",
+        "compliance_approved"
+      ]
     },
     "payload": {
       "type": "object",
@@ -22,15 +42,19 @@
     "priority": {
       "type": "string",
       "enum": ["critical", "high", "normal", "low"],
-      "default": "normal"
+      "default": "normal",
+      "description": "Message priority — critical blocks all lower-priority processing"
     },
     "timestamp": {
       "type": "string",
-      "format": "date-time"
+      "format": "date-time",
+      "description": "ISO-8601 timestamp of message creation"
     },
     "correlation_id": {
       "type": "string",
+      "format": "uuid",
       "description": "Optional ID for tracing multi-agent workflows"
     }
-  }
+  },
+  "additionalProperties": false
 }

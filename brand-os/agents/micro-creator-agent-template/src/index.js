@@ -4,7 +4,13 @@ const { Kafka } = require('kafkajs');
 require('dotenv').config();
 
 const KAFKA_BROKERS = (process.env.KAFKA_BROKERS || 'localhost:9092').split(',');
-const PERSONA_ID = process.env.PERSONA_ID || 'default-persona';
+const PERSONA_ID = process.env.PERSONA_ID;
+
+if (!PERSONA_ID) {
+  console.error('FATAL: PERSONA_ID environment variable is not set. Each micro-creator instance requires a unique PERSONA_ID.');
+  process.exit(1);
+}
+
 const AGENT_ID = `micro-creator-agent-${PERSONA_ID}`;
 
 /**
@@ -39,7 +45,9 @@ class MicroCreatorAgentTemplate {
   }
 
   _isMessageForThisPersona(msg) {
-    if (!msg.payload || !msg.payload.persona_id) return true;
+    // Require explicit persona_id targeting; ignore broadcasts without one
+    // to prevent all instances from processing the same message.
+    if (!msg.payload || !msg.payload.persona_id) return false;
     return msg.payload.persona_id === PERSONA_ID;
   }
 

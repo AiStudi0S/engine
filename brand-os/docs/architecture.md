@@ -37,7 +37,7 @@ See [system-overview.md](../architecture/system-overview.md) for the full system
 
 ## Security
 
-- JWT (RS256) for service authentication
+- JWT (HS256) for service authentication (upgrade to RS256 with asymmetric keys when deploying to production)
 - OAuth 2.0 for platform connectors
 - Rate limiting on all public endpoints
 - Secrets via Kubernetes Secrets / AWS Secrets Manager

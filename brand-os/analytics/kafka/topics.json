@@ -1,9 +1,12 @@
 {
+  "_comment": "Canonical topic registry is at specs/event-topics/topics.json. This file mirrors it for the analytics pipeline. Keep both in sync.",
   "topics": [
     { "name": "campaign.events", "partitions": 6, "replication": 1, "retention.ms": 604800000 },
     { "name": "campaign.publish", "partitions": 3, "replication": 1, "retention.ms": 86400000 },
+    { "name": "campaign.created", "partitions": 2, "replication": 1, "retention.ms": 604800000 },
     { "name": "analytics.metrics", "partitions": 6, "replication": 1, "retention.ms": 604800000 },
     { "name": "leads.inbound", "partitions": 3, "replication": 1, "retention.ms": 604800000 },
+    { "name": "approval.required", "partitions": 1, "replication": 1, "retention.ms": 259200000 },
     { "name": "agent.brand-intelligence.in", "partitions": 1, "replication": 1 },
     { "name": "agent.brand-intelligence.out", "partitions": 1, "replication": 1 },
     { "name": "agent.content-studio.in", "partitions": 1, "replication": 1 },
@@ -19,6 +22,10 @@
     { "name": "agent.analytics.in", "partitions": 1, "replication": 1 },
     { "name": "agent.analytics.out", "partitions": 1, "replication": 1 },
     { "name": "agent.compliance.in", "partitions": 1, "replication": 1 },
-    { "name": "agent.compliance.out", "partitions": 1, "replication": 1 }
+    { "name": "agent.compliance.out", "partitions": 1, "replication": 1 },
+    { "name": "agent.persona-creator.in", "partitions": 1, "replication": 1 },
+    { "name": "agent.persona-creator.out", "partitions": 1, "replication": 1 },
+    { "name": "agent.micro-creator.in", "partitions": 4, "replication": 1 },
+    { "name": "agent.micro-creator.out", "partitions": 4, "replication": 1 }
   ]
 }

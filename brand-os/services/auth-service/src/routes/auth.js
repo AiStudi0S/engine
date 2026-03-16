@@ -8,14 +8,21 @@ const { JWT_SECRET } = require('../config');
 
 const router = express.Router();
 
+// In-memory user store (replace with PostgreSQL in production)
+// TODO: migrate to PostgreSQL — see brand-os/services/auth-service/src/db/users.js
+const users = new Map();
+
 router.post('/register', async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'email and password are required' });
     }
+    if (users.has(email)) {
+      return res.status(409).json({ error: 'email already registered' });
+    }
     const hash = await bcrypt.hash(password, 12);
-    // TODO: persist user to database
+    users.set(email, { email, hash, role: 'user' });
     const token = jwt.sign({ email, role: 'user' }, JWT_SECRET, { expiresIn: '7d' });
     return res.status(201).json({ token, user: { email } });
   } catch (err) {
@@ -30,9 +37,16 @@ router.post('/login', async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ error: 'email and password are required' });
     }
-    // TODO: fetch user from database and verify hash
-    const token = jwt.sign({ email, role: 'user' }, JWT_SECRET, { expiresIn: '7d' });
-    return res.json({ token, user: { email } });
+    const user = users.get(email);
+    if (!user) {
+      return res.status(401).json({ error: 'invalid credentials' });
+    }
+    const valid = await bcrypt.compare(password, user.hash);
+    if (!valid) {
+      return res.status(401).json({ error: 'invalid credentials' });
+    }
+    const token = jwt.sign({ email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
+    return res.json({ token, user: { email: user.email } });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'internal server error' });

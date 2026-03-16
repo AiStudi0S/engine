@@ -20,7 +20,8 @@ The following actions always require human approval:
 ## Approval Workflow
 
 ```
-1. Agent emits approval_required event (priority: high)
+1. Agent emits a message with intent "approval_required" to the
+   Kafka topic "approval.required" (priority: high)
 2. notification-service alerts human operator
 3. Operator reviews in dashboard (approval_requests panel)
 4. Operator approves / rejects / requests changes

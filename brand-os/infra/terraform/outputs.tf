@@ -28,3 +28,8 @@ output "vpc_id" {
   description = "VPC ID"
   value       = aws_vpc.brand_os.id
 }
+
+output "nat_gateway_ips" {
+  description = "Public IPs of NAT gateways (allow-list in external services)"
+  value       = aws_eip.nat[*].public_ip
+}

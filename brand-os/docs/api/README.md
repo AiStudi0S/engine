@@ -11,7 +11,12 @@
 
 ## Authentication
 
-All endpoints (except `/health` and `/api/auth/login`) require a JWT Bearer token:
+The following endpoints are **unauthenticated** (no JWT required):
+- `GET /health` (all services)
+- `POST /api/auth/register`
+- `POST /api/auth/login`
+
+All other endpoints require a JWT Bearer token:
 
 ```
 Authorization: Bearer <token>
@@ -34,7 +39,7 @@ See [`/specs/api-spec.yaml`](../../specs/api-spec.yaml) for the complete OpenAPI
 - `GET /api/campaigns` — List all campaigns
 - `POST /api/campaigns` — Create campaign
 - `GET /api/campaigns/:id` — Get campaign by ID
-- `PUT /api/campaigns/:id` — Update campaign
+- `PATCH /api/campaigns/:id` — Update campaign (partial)
 - `DELETE /api/campaigns/:id` — Delete campaign
 
 ### AI Engine
@@ -45,4 +50,5 @@ See [`/specs/api-spec.yaml`](../../specs/api-spec.yaml) for the complete OpenAPI
 ### CRM
 - `GET /api/leads` — List leads
 - `POST /api/leads` — Create lead
-- `PUT /api/leads/:id/score` — Update lead score
+- `GET /api/leads/:id` — Get lead by ID
+- `PATCH /api/leads/:id` — Update lead (score, status, etc.)

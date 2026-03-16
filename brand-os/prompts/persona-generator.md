@@ -23,11 +23,11 @@ for the Brand OS Influence Network.
   "tone": "{{input.tone}}",
   "style": "{{input.content_style}}",
   "platforms": ["instagram", "tiktok", "x"],
-  "content_types": ["short-video", "carousel", "threads"],
-  "posting_frequency": "2 posts/day",
-  "engagement_style": "high-touch, conversational",
-  "rl_optimization_enabled": true,
-  "created_at": "{{ISO-8601 timestamp}}"
+  "contentTypes": ["short-video", "carousel", "thread"],
+  "postingFrequency": "daily",
+  "engagementStyle": "high-touch, conversational",
+  "rlOptimizationEnabled": true,
+  "createdAt": "{{ISO-8601 timestamp}}"
 }
 ```
 
@@ -49,9 +49,9 @@ for the Brand OS Influence Network.
   "tone": "educational",
   "style": "Minimalist, motion graphics, clean typography",
   "platforms": ["tiktok", "instagram", "youtube"],
-  "content_types": ["short-video", "carousel", "reel"],
-  "posting_frequency": "2 posts/day",
-  "engagement_style": "high-touch, conversational"
+  "contentTypes": ["short-video", "carousel", "reel"],
+  "postingFrequency": "daily",
+  "engagementStyle": "proactive"
 }
 ```
 
@@ -64,9 +64,9 @@ for the Brand OS Influence Network.
   "tone": "inspirational",
   "style": "High-contrast, energetic, before/after formats",
   "platforms": ["instagram", "tiktok"],
-  "content_types": ["reel", "story", "image-post"],
-  "posting_frequency": "3x/week",
-  "engagement_style": "community-focused"
+  "contentTypes": ["reel", "story", "image-post"],
+  "postingFrequency": "3x/week",
+  "engagementStyle": "community-focused"
 }
 ```
 

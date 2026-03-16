@@ -42,7 +42,8 @@ Human Oversight Layer (Approvals, Budgets, Brand Rules)
 ## Agent Swarm
 
 All agents communicate via Apache Kafka using the Agent Message Protocol
-defined in `/specs/agent-protocol.json`.
+defined in `/specs/message-protocols/agent-protocol.json`
+(also mirrored at `/specs/agent-protocol.json` for backwards compatibility).
 
 | Agent | Input Topic | Output Topic |
 |---|---|---|
