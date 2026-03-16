@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Micro-Creator Persona Schema",
+  "description": "Schema for AI-driven micro-creator personas in the Influence Network",
+  "type": "object",
+  "required": ["name", "niche", "platforms", "tone"],
+  "properties": {
+    "name": { "type": "string" },
+    "style": { "type": "string", "description": "Visual and content style descriptor" },
+    "tone": {
+      "type": "string",
+      "enum": ["professional", "casual", "humorous", "inspirational", "educational", "controversial"]
+    },
+    "niche": { "type": "string" },
+    "platforms": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["tiktok", "instagram", "youtube", "twitter", "linkedin", "facebook"] },
+      "minItems": 1
+    },
+    "contentTypes": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["short-video", "image-post", "story", "reel", "article", "thread", "newsletter"] }
+    },
+    "postingFrequency": {
+      "type": "string",
+      "enum": ["daily", "3x/week", "weekly", "bi-weekly"]
+    },
+    "engagementStyle": {
+      "type": "string",
+      "enum": ["replies-only", "proactive", "community-focused", "minimal"]
+    },
+    "rlOptimizationEnabled": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

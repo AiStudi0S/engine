@@ -1,0 +1,239 @@
+openapi: 3.1.0
+info:
+  title: Brand OS API
+  description: Autonomous Marketing Operating System API
+  version: 1.0.0
+  contact:
+    name: AiStudi0S
+    url: https://github.com/AiStudi0S/engine
+
+servers:
+  - url: http://localhost:3001
+    description: Auth Service (local)
+  - url: http://localhost:3002
+    description: Campaign Service (local)
+  - url: http://localhost:8000
+    description: AI Engine (local)
+
+tags:
+  - name: auth
+    description: Authentication and authorization
+  - name: campaigns
+    description: Campaign management
+  - name: ai
+    description: AI automation endpoints
+  - name: health
+    description: Health checks
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  service:
+                    type: string
+
+  /api/auth/register:
+    post:
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        '201':
+          description: User created and JWT returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/auth/login:
+    post:
+      tags: [auth]
+      summary: Login and receive JWT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/copy/generate:
+    post:
+      tags: [ai]
+      summary: Generate ad copy variations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CopyRequest'
+      responses:
+        '200':
+          description: Generated copy variations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CopyResponse'
+
+  /api/audience/match:
+    post:
+      tags: [ai]
+      summary: Match campaign to audience segments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AudienceRequest'
+      responses:
+        '200':
+          description: Audience matching results
+
+  /api/performance/predict:
+    post:
+      tags: [ai]
+      summary: Predict campaign performance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PredictionRequest'
+      responses:
+        '200':
+          description: Performance prediction
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          type: object
+          properties:
+            email:
+              type: string
+
+    CopyRequest:
+      type: object
+      required: [product, audience]
+      properties:
+        product:
+          type: string
+        audience:
+          type: string
+        tone:
+          type: string
+          default: professional
+        platforms:
+          type: array
+          items:
+            type: string
+        variations:
+          type: integer
+          default: 3
+          minimum: 1
+          maximum: 10
+
+    CopyResponse:
+      type: object
+      properties:
+        copies:
+          type: array
+          items:
+            type: string
+        metadata:
+          type: object
+
+    AudienceRequest:
+      type: object
+      required: [campaign_id, product_description]
+      properties:
+        campaign_id:
+          type: string
+        product_description:
+          type: string
+
+    PredictionRequest:
+      type: object
+      required: [campaign_id, ad_copy, audience_segment, platform, budget]
+      properties:
+        campaign_id:
+          type: string
+        ad_copy:
+          type: string
+        audience_segment:
+          type: object
+        platform:
+          type: string
+        budget:
+          type: number
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error:
+                type: string

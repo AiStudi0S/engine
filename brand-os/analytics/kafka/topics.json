@@ -1,0 +1,24 @@
+{
+  "topics": [
+    { "name": "campaign.events", "partitions": 6, "replication": 1, "retention.ms": 604800000 },
+    { "name": "campaign.publish", "partitions": 3, "replication": 1, "retention.ms": 86400000 },
+    { "name": "analytics.metrics", "partitions": 6, "replication": 1, "retention.ms": 604800000 },
+    { "name": "leads.inbound", "partitions": 3, "replication": 1, "retention.ms": 604800000 },
+    { "name": "agent.brand-intelligence.in", "partitions": 1, "replication": 1 },
+    { "name": "agent.brand-intelligence.out", "partitions": 1, "replication": 1 },
+    { "name": "agent.content-studio.in", "partitions": 1, "replication": 1 },
+    { "name": "agent.content-studio.out", "partitions": 1, "replication": 1 },
+    { "name": "agent.campaign-strategy.in", "partitions": 1, "replication": 1 },
+    { "name": "agent.campaign-strategy.out", "partitions": 1, "replication": 1 },
+    { "name": "agent.distribution.in", "partitions": 2, "replication": 1 },
+    { "name": "agent.distribution.out", "partitions": 2, "replication": 1 },
+    { "name": "agent.audience-growth.in", "partitions": 1, "replication": 1 },
+    { "name": "agent.audience-growth.out", "partitions": 1, "replication": 1 },
+    { "name": "agent.revenue-optimization.in", "partitions": 1, "replication": 1 },
+    { "name": "agent.revenue-optimization.out", "partitions": 1, "replication": 1 },
+    { "name": "agent.analytics.in", "partitions": 1, "replication": 1 },
+    { "name": "agent.analytics.out", "partitions": 1, "replication": 1 },
+    { "name": "agent.compliance.in", "partitions": 1, "replication": 1 },
+    { "name": "agent.compliance.out", "partitions": 1, "replication": 1 }
+  ]
+}

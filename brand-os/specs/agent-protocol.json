@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Message Protocol",
+  "description": "Inter-agent communication message format for Brand OS swarm",
+  "type": "object",
+  "required": ["agent", "intent", "payload", "priority", "timestamp"],
+  "properties": {
+    "agent": {
+      "type": "string",
+      "description": "Unique agent identifier",
+      "examples": ["brand-intelligence-agent", "content-studio-agent"]
+    },
+    "intent": {
+      "type": "string",
+      "description": "Action or result intent",
+      "examples": ["analyze_trends", "generate_article", "publish_content"]
+    },
+    "payload": {
+      "type": "object",
+      "description": "Intent-specific data"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["critical", "high", "normal", "low"],
+      "default": "normal"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "Optional ID for tracing multi-agent workflows"
+    }
+  }
+}

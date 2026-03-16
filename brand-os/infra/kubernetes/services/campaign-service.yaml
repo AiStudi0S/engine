@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: campaign-service
+  namespace: brand-os
+  labels:
+    app: campaign-service
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: campaign-service
+  template:
+    metadata:
+      labels:
+        app: campaign-service
+    spec:
+      containers:
+        - name: campaign-service
+          image: brand-os/campaign-service:latest
+          ports:
+            - containerPort: 3002
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: campaign-service
+  namespace: brand-os
+spec:
+  selector:
+    app: campaign-service
+  ports:
+    - port: 3002
+      targetPort: 3002
+  type: ClusterIP
