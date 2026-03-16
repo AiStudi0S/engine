@@ -1,0 +1,147 @@
+{
+  "topics": [
+    {
+      "name": "campaign.events",
+      "description": "Raw campaign interaction events (impression, click, conversion, revenue)",
+      "partitions": 6,
+      "replication": 1,
+      "config": { "retention.ms": 604800000, "cleanup.policy": "delete" }
+    },
+    {
+      "name": "campaign.publish",
+      "description": "Campaign publishing jobs consumed by distribution-agent",
+      "partitions": 3,
+      "replication": 1,
+      "config": { "retention.ms": 86400000 }
+    },
+    {
+      "name": "campaign.created",
+      "description": "New campaign creation events",
+      "partitions": 2,
+      "replication": 1,
+      "config": { "retention.ms": 604800000 }
+    },
+    {
+      "name": "analytics.metrics",
+      "description": "Aggregated metrics from analytics-service",
+      "partitions": 6,
+      "replication": 1,
+      "config": { "retention.ms": 604800000 }
+    },
+    {
+      "name": "leads.inbound",
+      "description": "Inbound lead events from all sources",
+      "partitions": 3,
+      "replication": 1,
+      "config": { "retention.ms": 604800000 }
+    },
+    {
+      "name": "approval.required",
+      "description": "Human approval request events",
+      "partitions": 1,
+      "replication": 1,
+      "config": { "retention.ms": 259200000 }
+    },
+    {
+      "name": "agent.brand-intelligence.in",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.brand-intelligence.out",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.content-studio.in",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.content-studio.out",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.campaign-strategy.in",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.campaign-strategy.out",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.distribution.in",
+      "partitions": 2,
+      "replication": 1
+    },
+    {
+      "name": "agent.distribution.out",
+      "partitions": 2,
+      "replication": 1
+    },
+    {
+      "name": "agent.audience-growth.in",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.audience-growth.out",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.revenue-optimization.in",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.revenue-optimization.out",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.analytics.in",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.analytics.out",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.compliance.in",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.compliance.out",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.persona-creator.in",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.persona-creator.out",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.micro-creator.in",
+      "partitions": 4,
+      "replication": 1,
+      "description": "Shared topic for all micro-creator agent instances; filtered by persona_id in payload"
+    },
+    {
+      "name": "agent.micro-creator.out",
+      "partitions": 4,
+      "replication": 1
+    }
+  ]
+}
