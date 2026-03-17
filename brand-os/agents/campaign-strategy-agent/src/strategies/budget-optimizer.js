@@ -53,6 +53,15 @@ function optimizeBudget({ totalBudget, platforms, performanceHistory = {} }) {
     allocation[platform] = Math.round(fractions[platform] * totalBudget * 100) / 100;
   });
 
+  // Adjust for rounding drift: sum of rounded values may differ from totalBudget.
+  // Apply the remainder to the platform with the largest allocation.
+  const allocatedSum = Object.values(allocation).reduce((a, b) => a + b, 0);
+  const remainder = Math.round((totalBudget - allocatedSum) * 100) / 100;
+  if (remainder !== 0) {
+    const largest = platforms.reduce((a, b) => (allocation[a] >= allocation[b] ? a : b));
+    allocation[largest] = Math.round((allocation[largest] + remainder) * 100) / 100;
+  }
+
   return allocation;
 }
 

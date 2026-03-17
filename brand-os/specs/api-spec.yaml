@@ -8,12 +8,13 @@ info:
     url: https://github.com/AiStudi0S/engine
 
 servers:
-  - url: http://localhost:3001
-    description: Auth Service (local)
-  - url: http://localhost:3002
-    description: Campaign Service (local)
-  - url: http://localhost:8000
-    description: AI Engine (local)
+  # Single API Gateway entry point for all services.
+  # In local dev, route traffic via the gateway (e.g. Kong/NGINX) or call each
+  # service directly using the x-service-url extensions on individual paths.
+  - url: http://localhost:8080
+    description: API Gateway (local dev — routes to individual services)
+  - url: https://api.brandos.ai
+    description: API Gateway (production)
 
 tags:
   - name: auth

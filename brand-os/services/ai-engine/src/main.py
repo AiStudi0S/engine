@@ -8,7 +8,7 @@ from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
@@ -33,19 +33,19 @@ class CopyRequest(BaseModel):
     product: str
     audience: str
     tone: str = "professional"
-    platforms: list[str] = []
-    variations: int = 3
+    platforms: list[str] = Field(default_factory=list)
+    variations: int = Field(default=3, ge=1, le=10)
 
 
 class CopyResponse(BaseModel):
     copies: list[str]
-    metadata: dict[str, Any] = {}
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class AudienceRequest(BaseModel):
     campaign_id: str
     product_description: str
-    existing_customers: list[dict[str, Any]] = []
+    existing_customers: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class AudienceResponse(BaseModel):
@@ -58,7 +58,7 @@ class PredictionRequest(BaseModel):
     ad_copy: str
     audience_segment: dict[str, Any]
     platform: str
-    budget: float
+    budget: float = Field(ge=0)
 
 
 class PredictionResponse(BaseModel):

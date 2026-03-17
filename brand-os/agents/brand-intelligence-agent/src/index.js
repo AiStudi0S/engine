@@ -24,7 +24,14 @@ class BrandIntelligenceAgent {
 
     await this.consumer.run({
       eachMessage: async ({ message }) => {
-        const payload = JSON.parse(message.value.toString());
+        let payload;
+        try {
+          payload = JSON.parse(message.value.toString());
+        } catch (parseErr) {
+          // Malformed message — log and skip to avoid crashing the consumer loop
+          console.error(`[${AGENT_ID}] failed to parse message:`, parseErr.message);
+          return;
+        }
         console.log(`[${AGENT_ID}] received:`, payload.intent);
         const result = await this.process(payload);
         if (result) await this.emit(result);

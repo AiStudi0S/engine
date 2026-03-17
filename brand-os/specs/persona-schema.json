@@ -6,6 +6,11 @@
   "required": ["name", "niche", "platforms", "tone"],
   "properties": {
     "name": { "type": "string" },
+    "bio": {
+      "type": "string",
+      "description": "Short persona bio displayed on social profiles",
+      "maxLength": 160
+    },
     "style": { "type": "string", "description": "Visual and content style descriptor" },
     "tone": {
       "type": "string",
@@ -32,6 +37,8 @@
     "rlOptimizationEnabled": {
       "type": "boolean",
       "default": true
-    }
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
   }
 }

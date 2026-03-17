@@ -4,7 +4,9 @@ const BaseSocialConnector = require('./base-connector');
 
 class TwitterConnector extends BaseSocialConnector {
   constructor(config) {
-    super({ name: 'twitter', ...config });
+    // Canonical platform identifier is 'x'; 'twitter' is kept as an alias for
+    // backward-compatibility with external API references (Twitter API v2 URLs).
+    super({ name: 'x', ...config });
     this.baseUrl = 'https://api.twitter.com/2';
   }
 
@@ -13,8 +15,8 @@ class TwitterConnector extends BaseSocialConnector {
     if (!text) throw new Error('tweet text is required');
     if (text.length > 280) throw new Error('tweet exceeds 280 character limit');
     // TODO: implement using Twitter API v2 with OAuth 2.0
-    console.log(`[twitter] Publishing: ${text.slice(0, 50)}...`);
-    return { id: `tweet_${Date.now()}`, text, platform: 'twitter' };
+    console.log(`[x] Publishing: ${text.slice(0, 50)}...`);
+    return { id: `tweet_${Date.now()}`, text, platform: 'x' };
   }
 
   async getAnalytics(postId) {
