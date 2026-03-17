@@ -2,7 +2,7 @@
 
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
-const { Campaign, CAMPAIGN_STATUSES } = require('../models/campaign');
+const { Campaign } = require('../models/campaign');
 
 const router = express.Router();
 

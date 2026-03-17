@@ -11,7 +11,7 @@ for the Brand OS Influence Network.
 | `niche` | string | Content niche (e.g., "AI productivity", "fitness") |
 | `tone` | enum | `professional` \| `casual` \| `humorous` \| `inspirational` \| `educational` |
 | `platforms` | array | Primary platforms (tiktok, instagram, youtube, x, linkedin) |
-| `content_style` | string | Visual/editorial style descriptor |
+| `style` | string | Visual/editorial style descriptor |
 
 ## Output Schema
 
@@ -21,7 +21,7 @@ for the Brand OS Influence Network.
   "bio": "{{short persona bio — max 160 chars}}",
   "niche": "{{input.niche}}",
   "tone": "{{input.tone}}",
-  "style": "{{input.content_style}}",
+  "style": "{{input.style}}",
   "platforms": ["instagram", "tiktok", "x"],
   "contentTypes": ["short-video", "image-post", "thread"],
   "postingFrequency": "daily",

@@ -197,22 +197,22 @@ components:
 
     AudienceRequest:
       type: object
-      required: [campaign_id, product_description]
+      required: [campaignId, productDescription]
       properties:
-        campaign_id:
+        campaignId:
           type: string
-        product_description:
+        productDescription:
           type: string
 
     PredictionRequest:
       type: object
-      required: [campaign_id, ad_copy, audience_segment, platform, budget]
+      required: [campaignId, adCopy, audienceSegment, platform, budget]
       properties:
-        campaign_id:
+        campaignId:
           type: string
-        ad_copy:
+        adCopy:
           type: string
-        audience_segment:
+        audienceSegment:
           type: object
         platform:
           type: string

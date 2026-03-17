@@ -9,6 +9,7 @@ const PERSONA_SCHEMA = Object.freeze({
   contentTypes: [],
   postingFrequency: '',
   engagementStyle: '',
+  rlOptimizationEnabled: true,
 });
 
 function validatePersona(persona) {

@@ -11,6 +11,9 @@ const leads = new Map();
 
 router.get('/', (req, res) => {
   const { campaignId, status } = req.query;
+  if (status && !Object.values(LEAD_STATUSES).includes(status)) {
+    return res.status(400).json({ error: `invalid status: '${status}'. Must be one of: ${Object.values(LEAD_STATUSES).join(', ')}` });
+  }
   let result = Array.from(leads.values());
   if (campaignId) result = result.filter((l) => l.campaignId === campaignId);
   if (status) result = result.filter((l) => l.status === status);

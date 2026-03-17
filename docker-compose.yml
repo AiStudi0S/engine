@@ -48,6 +48,12 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9092 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
 
   auth-service:
     build: ./brand-os/services/auth-service
@@ -74,9 +80,12 @@ services:
       - REDIS_URL=redis://redis:6379
       - KAFKA_BROKERS=kafka:9092
     depends_on:
-      - postgres
-      - redis
-      - kafka
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
 
   scheduler-service:
     build: ./brand-os/services/scheduler-service
@@ -87,8 +96,10 @@ services:
       - REDIS_URL=redis://redis:6379
       - KAFKA_BROKERS=kafka:9092
     depends_on:
-      - redis
-      - kafka
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
 
   analytics-service:
     build: ./brand-os/services/analytics-service
@@ -98,7 +109,8 @@ services:
       - NODE_ENV=production
       - KAFKA_BROKERS=kafka:9092
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
 
   ai-engine:
     build: ./brand-os/services/ai-engine
@@ -109,7 +121,8 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - KAFKA_BROKERS=kafka:9092
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
 
   distribution-service:
     build: ./brand-os/services/distribution-service
@@ -119,7 +132,8 @@ services:
       - NODE_ENV=production
       - KAFKA_BROKERS=kafka:9092
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
 
   notification-service:
     build: ./brand-os/services/notification-service
@@ -129,7 +143,8 @@ services:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   crm-service:
     build: ./brand-os/services/crm-service

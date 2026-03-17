@@ -4,7 +4,10 @@ const { Kafka } = require('kafkajs');
 require('dotenv').config();
 
 const AGENT_ID = 'content-studio-agent';
+const AGENT_KEY = 'content-studio'; // canonical key used in topic registry
 const KAFKA_BROKERS = (process.env.KAFKA_BROKERS || 'localhost:9092').split(',');
+const TOPIC_IN = `agent.${AGENT_KEY}.in`;
+const TOPIC_OUT = `agent.${AGENT_KEY}.out`;
 
 class ContentStudioAgent {
   constructor() {
@@ -16,14 +19,14 @@ class ContentStudioAgent {
   async start() {
     await this.producer.connect();
     await this.consumer.connect();
-    await this.consumer.subscribe({ topic: `agent.${AGENT_ID}.in`, fromBeginning: false });
+    await this.consumer.subscribe({ topic: TOPIC_IN, fromBeginning: false });
 
     await this.consumer.run({
       eachMessage: async ({ message }) => {
         const payload = JSON.parse(message.value.toString());
         const result = await this.process(payload);
         await this.producer.send({
-          topic: `agent.${AGENT_ID}.out`,
+          topic: TOPIC_OUT,
           messages: [{ value: JSON.stringify(result) }],
         });
       },

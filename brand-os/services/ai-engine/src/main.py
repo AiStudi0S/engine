@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import os
 from contextlib import asynccontextmanager
 from typing import Any
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 load_dotenv()
@@ -43,9 +42,9 @@ class CopyResponse(BaseModel):
 
 
 class AudienceRequest(BaseModel):
-    campaign_id: str
-    product_description: str
-    existing_customers: list[dict[str, Any]] = Field(default_factory=list)
+    campaignId: str
+    productDescription: str
+    existingCustomers: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class AudienceResponse(BaseModel):
@@ -54,9 +53,9 @@ class AudienceResponse(BaseModel):
 
 
 class PredictionRequest(BaseModel):
-    campaign_id: str
-    ad_copy: str
-    audience_segment: dict[str, Any]
+    campaignId: str
+    adCopy: str
+    audienceSegment: dict[str, Any]
     platform: str
     budget: float = Field(ge=0)
 

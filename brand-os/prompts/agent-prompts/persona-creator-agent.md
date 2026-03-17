@@ -11,7 +11,7 @@ thousands of instances without identity collision.
 - `niche` — content niche (e.g., "AI productivity", "fitness")
 - `tone` — voice tone (professional | casual | humorous | inspirational | educational)
 - `platforms` — target platforms list
-- `content_style` — visual/editorial style descriptor
+- `style` — visual/editorial style descriptor
 
 ## Output Schema
 

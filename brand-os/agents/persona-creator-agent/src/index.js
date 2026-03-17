@@ -5,9 +5,10 @@ const { createPersona, validatePersona } = require('./schemas/persona-schema');
 require('dotenv').config();
 
 const AGENT_ID = 'persona-creator-agent';
+const AGENT_KEY = 'persona-creator'; // canonical key used in topic registry
 const KAFKA_BROKERS = (process.env.KAFKA_BROKERS || 'localhost:9092').split(',');
-const TOPIC_IN = `agent.${AGENT_ID}.in`;
-const TOPIC_OUT = `agent.${AGENT_ID}.out`;
+const TOPIC_IN = `agent.${AGENT_KEY}.in`;
+const TOPIC_OUT = `agent.${AGENT_KEY}.out`;
 
 class PersonaCreatorAgent {
   constructor() {
