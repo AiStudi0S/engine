@@ -25,10 +25,10 @@ thousands of instances without identity collision.
     "tone": "educational",
     "niche": "AI productivity",
     "platforms": ["tiktok", "instagram", "youtube"],
-    "content_types": ["short-video", "carousel", "reel"],
-    "posting_frequency": "2 posts/day",
-    "engagement_style": "high-touch, conversational",
-    "rl_optimization_enabled": true
+    "contentTypes": ["short-video", "reel", "thread"],
+    "postingFrequency": "daily",
+    "engagementStyle": "proactive",
+    "rlOptimizationEnabled": true
   },
   "next_actions": [
     "provision micro-creator-agent-template instance for this persona",

@@ -10,7 +10,7 @@ for the Brand OS Influence Network.
 |---|---|---|
 | `niche` | string | Content niche (e.g., "AI productivity", "fitness") |
 | `tone` | enum | `professional` \| `casual` \| `humorous` \| `inspirational` \| `educational` |
-| `platform` | array | Primary platforms (tiktok, instagram, youtube, x, linkedin) |
+| `platforms` | array | Primary platforms (tiktok, instagram, youtube, x, linkedin) |
 | `content_style` | string | Visual/editorial style descriptor |
 
 ## Output Schema
@@ -23,9 +23,9 @@ for the Brand OS Influence Network.
   "tone": "{{input.tone}}",
   "style": "{{input.content_style}}",
   "platforms": ["instagram", "tiktok", "x"],
-  "contentTypes": ["short-video", "carousel", "thread"],
+  "contentTypes": ["short-video", "image-post", "thread"],
   "postingFrequency": "daily",
-  "engagementStyle": "high-touch, conversational",
+  "engagementStyle": "proactive",
   "rlOptimizationEnabled": true,
   "createdAt": "{{ISO-8601 timestamp}}"
 }
@@ -49,7 +49,7 @@ for the Brand OS Influence Network.
   "tone": "educational",
   "style": "Minimalist, motion graphics, clean typography",
   "platforms": ["tiktok", "instagram", "youtube"],
-  "contentTypes": ["short-video", "carousel", "reel"],
+  "contentTypes": ["short-video", "image-post", "reel"],
   "postingFrequency": "daily",
   "engagementStyle": "proactive"
 }

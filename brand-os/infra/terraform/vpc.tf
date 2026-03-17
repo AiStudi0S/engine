@@ -103,17 +103,20 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-# Private subnets → NAT Gateway
+# Private subnets → NAT Gateway (one route table per AZ for HA)
 resource "aws_route_table" "private" {
+  count  = length(aws_subnet.private)
   vpc_id = aws_vpc.brand_os.id
 
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.brand_os[0].id
+    # Route each private subnet through its corresponding NAT gateway
+    # (falls back to NAT[0] when nat_gateway_count = 1)
+    nat_gateway_id = aws_nat_gateway.brand_os[min(count.index, var.nat_gateway_count - 1)].id
   }
 
   tags = {
-    Name        = "brand-os-private-rt"
+    Name        = "brand-os-private-rt-${count.index}"
     Environment = var.environment
   }
 }
@@ -121,5 +124,5 @@ resource "aws_route_table" "private" {
 resource "aws_route_table_association" "private" {
   count          = length(aws_subnet.private)
   subnet_id      = aws_subnet.private[count.index].id
-  route_table_id = aws_route_table.private.id
+  route_table_id = aws_route_table.private[count.index].id
 }

@@ -61,19 +61,37 @@ resource "aws_security_group" "eks_nodes" {
   }
 }
 
+resource "aws_launch_template" "eks_nodes" {
+  name_prefix = "brand-os-eks-nodes-"
+
+  # Attach the custom security group so RDS/Redis can allow inbound from this SG
+  vpc_security_group_ids = [aws_security_group.eks_nodes.id]
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name        = "brand-os-eks-node"
+      Environment = var.environment
+    }
+  }
+}
+
 resource "aws_eks_node_group" "standard" {
   cluster_name    = aws_eks_cluster.brand_os.name
   node_group_name = "standard"
   node_role_arn   = aws_iam_role.eks_node.arn
   subnet_ids      = aws_subnet.private[*].id
 
+  launch_template {
+    id      = aws_launch_template.eks_nodes.id
+    version = aws_launch_template.eks_nodes.latest_version
+  }
+
   scaling_config {
     desired_size = 3
     max_size     = 10
     min_size     = 1
   }
-
-  instance_types = ["t3.large"]
 
   tags = {
     Environment = var.environment
@@ -132,13 +150,22 @@ resource "aws_db_instance" "brand_os" {
   password               = var.db_password
   db_subnet_group_name   = aws_db_subnet_group.brand_os.name
   vpc_security_group_ids = [aws_security_group.rds.id]
-  skip_final_snapshot    = false
-  multi_az               = true
+  # Require a final snapshot on deletion to prevent accidental data loss.
+  # Override with skip_final_snapshot=true via tfvars for dev/ephemeral environments.
+  skip_final_snapshot       = var.skip_final_snapshot
+  final_snapshot_identifier = var.skip_final_snapshot ? null : "brand-os-${var.environment}-final"
+  multi_az                  = true
 
   tags = {
     Environment = var.environment
     Project     = "brand-os"
   }
+}
+
+variable "skip_final_snapshot" {
+  description = "Set to true for dev/ephemeral environments to skip the RDS final snapshot on destroy."
+  type        = bool
+  default     = false
 }
 
 variable "db_password" {
@@ -202,6 +229,8 @@ resource "aws_elasticache_replication_group" "brand_os" {
   security_group_ids         = [aws_security_group.redis.id]
   at_rest_encryption_enabled = true
   transit_encryption_enabled = true
+  automatic_failover_enabled = true
+  multi_az_enabled           = true
 
   tags = {
     Environment = var.environment

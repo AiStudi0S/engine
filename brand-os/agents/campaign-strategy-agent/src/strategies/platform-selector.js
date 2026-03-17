@@ -5,7 +5,7 @@ const PLATFORM_SCORES = {
   instagram: { reach: 0.85, engagement: 0.8, costEfficiency: 0.75 },
   youtube: { reach: 0.8, engagement: 0.7, costEfficiency: 0.7 },
   facebook: { reach: 0.75, engagement: 0.6, costEfficiency: 0.65 },
-  twitter: { reach: 0.65, engagement: 0.55, costEfficiency: 0.6 },
+  x: { reach: 0.65, engagement: 0.55, costEfficiency: 0.6 },
   linkedin: { reach: 0.5, engagement: 0.6, costEfficiency: 0.5 },
 };
 

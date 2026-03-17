@@ -27,7 +27,7 @@ class BrandIntelligenceAgent {
         const payload = JSON.parse(message.value.toString());
         console.log(`[${AGENT_ID}] received:`, payload.intent);
         const result = await this.process(payload);
-        await this.emit(result);
+        if (result) await this.emit(result);
       },
     });
 
@@ -43,7 +43,8 @@ class BrandIntelligenceAgent {
         return this.scanCompetitors(payload);
       default:
         console.warn(`[${AGENT_ID}] unknown intent: ${intent}`);
-        return { intent: 'noop', payload: {} };
+        // Return null to skip emit rather than publishing an invalid protocol message
+        return null;
     }
   }
 

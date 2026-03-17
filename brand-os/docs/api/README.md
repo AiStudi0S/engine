@@ -16,13 +16,18 @@ The following endpoints are **unauthenticated** (no JWT required):
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 
-All other endpoints require a JWT Bearer token:
+All other endpoints require a JWT Bearer token in production:
 
 ```
 Authorization: Bearer <token>
 ```
 
 Obtain a token via `POST /api/auth/login`.
+
+> **Note:** In this scaffold, `campaign-service` and `crm-service` do not yet
+> enforce JWT validation at the service level. JWT enforcement is intended to
+> be handled at the API Gateway layer (Kong/NGINX) in production. Individual
+> service-level auth middleware will be added in a future iteration.
 
 ## Full API Spec
 

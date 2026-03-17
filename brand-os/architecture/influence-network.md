@@ -33,10 +33,10 @@ Each persona instance is:
   "tone": "professional|casual|humorous|inspirational|educational",
   "niche": "string",
   "platforms": ["tiktok", "instagram", "youtube", "x", "linkedin"],
-  "content_types": ["short-video", "carousel", "reel", "article", "thread", "newsletter"],
-  "posting_frequency": "daily|3x/week|weekly|bi-weekly",
-  "engagement_style": "replies-only|proactive|community-focused|minimal",
-  "rl_optimization_enabled": true
+  "contentTypes": ["short-video", "image-post", "reel", "article", "thread", "newsletter"],
+  "postingFrequency": "daily|3x/week|weekly|bi-weekly",
+  "engagementStyle": "replies-only|proactive|community-focused|minimal",
+  "rlOptimizationEnabled": true
 }
 ```
 

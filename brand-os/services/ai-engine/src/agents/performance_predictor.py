@@ -18,6 +18,7 @@ class PerformancePredictor:
             "instagram": 1.2,
             "facebook": 1.0,
             "twitter": 0.8,
+            "x": 0.8,  # canonical identifier for Twitter/X
             "youtube": 0.9,
         }
         multiplier = platform_multipliers.get(req.platform.lower(), 1.0)

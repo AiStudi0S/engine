@@ -17,8 +17,8 @@ app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'distributio
 app.post('/api/distribute', async (req, res) => {
   try {
     const { campaignId, content, platforms } = req.body;
-    if (!campaignId || !content || !platforms || !platforms.length) {
-      return res.status(400).json({ error: 'campaignId, content, and platforms are required' });
+    if (!campaignId || !content || !Array.isArray(platforms) || platforms.length === 0) {
+      return res.status(400).json({ error: 'campaignId, content, and platforms (non-empty array) are required' });
     }
     // TODO: route to platform-specific connectors
     const results = platforms.map((platform) => ({

@@ -34,7 +34,7 @@
       "type": "number",
       "minimum": 0
     },
-    "budget_allocation": {
+    "budgetAllocation": {
       "type": "object",
       "description": "Platform → fraction (must sum to 1.0)",
       "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
@@ -42,10 +42,10 @@
     "targeting": {
       "type": "object",
       "properties": {
-        "age_range": { "type": "string" },
+        "ageRange": { "type": "string" },
         "interests": { "type": "array", "items": { "type": "string" } },
         "locations": { "type": "array", "items": { "type": "string" } },
-        "exclude_audiences": { "type": "array", "items": { "type": "string" } }
+        "excludeAudiences": { "type": "array", "items": { "type": "string" } }
       }
     },
     "schedule": {
@@ -55,13 +55,13 @@
         "items": { "type": "string", "pattern": "^[0-2][0-9]:[0-5][0-9]$" }
       }
     },
-    "ab_variants": {
+    "abVariants": {
       "type": "integer",
       "minimum": 1,
       "maximum": 10,
       "default": 2
     },
-    "kpi_targets": {
+    "kpiTargets": {
       "type": "object",
       "properties": {
         "impressions": { "type": "integer" },
@@ -70,7 +70,7 @@
         "roi": { "type": "number" }
       }
     },
-    "created_at": { "type": "string", "format": "date-time" },
-    "updated_at": { "type": "string", "format": "date-time" }
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
   }
 }

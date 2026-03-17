@@ -10,7 +10,10 @@ function optimizeBudget({ totalBudget, platforms, performanceHistory = {} }) {
 
   platforms.forEach((platform) => {
     const history = performanceHistory[platform];
-    weights[platform] = history ? (history.roi || defaultWeight) : defaultWeight;
+    // Clamp to a small positive floor to handle zero/negative ROI gracefully.
+    // Using max(roi, 0) + epsilon ensures all weights stay strictly positive.
+    const raw = history ? (history.roi !== undefined ? history.roi : defaultWeight) : defaultWeight;
+    weights[platform] = Math.max(raw, 0) + 1e-6;
   });
 
   // Iterative capping: cap platforms at MAX_PLATFORM_FRACTION and

@@ -37,7 +37,13 @@ router.get('/:id', (req, res) => {
 router.patch('/:id', (req, res) => {
   const lead = leads.get(req.params.id);
   if (!lead) return res.status(404).json({ error: 'lead not found' });
-  Object.assign(lead, req.body);
+  // Whitelist patchable fields to prevent mutating immutable properties like id/createdAt
+  const PATCHABLE = ['status', 'score', 'tags', 'metadata', 'phone'];
+  PATCHABLE.forEach((field) => {
+    if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+      lead[field] = req.body[field];
+    }
+  });
   try {
     lead.validate();
   } catch (err) {

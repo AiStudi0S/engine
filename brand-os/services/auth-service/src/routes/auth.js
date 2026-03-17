@@ -12,11 +12,17 @@ const router = express.Router();
 // TODO: migrate to PostgreSQL — see brand-os/services/auth-service/src/db/users.js
 const users = new Map();
 
+const MIN_PASSWORD_LENGTH = 8;
+
 router.post('/register', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = (req.body.email || '').trim().toLowerCase();
+    const { password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'email and password are required' });
+    }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({ error: `password must be at least ${MIN_PASSWORD_LENGTH} characters` });
     }
     if (users.has(email)) {
       return res.status(409).json({ error: 'email already registered' });
@@ -33,7 +39,8 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = (req.body.email || '').trim().toLowerCase();
+    const { password } = req.body;
     if (!email || !password) {
       return res.status(400).json({ error: 'email and password are required' });
     }

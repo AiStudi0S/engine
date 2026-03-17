@@ -24,6 +24,9 @@ class Campaign {
     if (!Object.values(CAMPAIGN_STATUSES).includes(this.status)) {
       throw new Error(`invalid status: ${this.status}`);
     }
+    if (!Array.isArray(this.platforms) || this.platforms.length === 0) {
+      throw new Error('platforms must be a non-empty array');
+    }
     if (this.budget < 0) throw new Error('budget cannot be negative');
     return true;
   }

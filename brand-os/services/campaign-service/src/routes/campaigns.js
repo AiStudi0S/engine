@@ -33,7 +33,13 @@ router.get('/:id', (req, res) => {
 router.patch('/:id', (req, res) => {
   const campaign = campaigns.get(req.params.id);
   if (!campaign) return res.status(404).json({ error: 'campaign not found' });
-  Object.assign(campaign, req.body);
+  // Whitelist patchable fields to prevent mutating immutable properties like id
+  const PATCHABLE = ['name', 'status', 'platforms', 'budget', 'targeting'];
+  PATCHABLE.forEach((field) => {
+    if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+      campaign[field] = req.body[field];
+    }
+  });
   try {
     campaign.validate();
   } catch (err) {
