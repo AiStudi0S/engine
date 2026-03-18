@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Lead Data Model",
+  "description": "Schema for Brand OS CRM lead objects",
+  "type": "object",
+  "required": ["email", "campaignId", "source"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "campaignId": {
+      "type": "string",
+      "description": "ID of the campaign that generated this lead"
+    },
+    "email": {
+      "type": "string",
+      "format": "email"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string",
+      "enum": ["tiktok", "instagram", "youtube", "x", "reddit", "facebook", "linkedin", "email", "organic", "referral"]
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 0
+    },
+    "status": {
+      "type": "string",
+      "enum": ["new", "contacted", "qualified", "converted", "lost"],
+      "default": "new"
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "metadata": {
+      "type": "object"
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  }
+}

@@ -1,0 +1,162 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: brandos
+      POSTGRES_USER: brandos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U brandos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9092 || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  auth-service:
+    build: ./brand-os/services/auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://brandos:${POSTGRES_PASSWORD:-changeme}@postgres:5432/brandos
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required — set it in .env or the host environment}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  campaign-service:
+    build: ./brand-os/services/campaign-service
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://brandos:${POSTGRES_PASSWORD:-changeme}@postgres:5432/brandos
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BROKERS=kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  scheduler-service:
+    build: ./brand-os/services/scheduler-service
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BROKERS=kafka:9092
+    depends_on:
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  analytics-service:
+    build: ./brand-os/services/analytics-service
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=production
+      - KAFKA_BROKERS=kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  ai-engine:
+    build: ./brand-os/services/ai-engine
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - KAFKA_BROKERS=kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  distribution-service:
+    build: ./brand-os/services/distribution-service
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=production
+      - KAFKA_BROKERS=kafka:9092
+    depends_on:
+      kafka:
+        condition: service_healthy
+
+  notification-service:
+    build: ./brand-os/services/notification-service
+    ports:
+      - "3006:3006"
+    environment:
+      - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  crm-service:
+    build: ./brand-os/services/crm-service
+    ports:
+      - "3007:3007"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://brandos:${POSTGRES_PASSWORD:-changeme}@postgres:5432/brandos
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

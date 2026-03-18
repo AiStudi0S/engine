@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Micro-Creator Persona Schema",
+  "description": "Schema for AI-driven micro-creator personas in the Influence Network",
+  "type": "object",
+  "required": ["name", "niche", "platforms", "tone"],
+  "properties": {
+    "name": { "type": "string" },
+    "bio": {
+      "type": "string",
+      "description": "Short persona bio displayed on social profiles",
+      "maxLength": 160
+    },
+    "style": { "type": "string", "description": "Visual and content style descriptor" },
+    "tone": {
+      "type": "string",
+      "enum": ["professional", "casual", "humorous", "inspirational", "educational", "controversial"]
+    },
+    "niche": { "type": "string" },
+    "platforms": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["tiktok", "instagram", "youtube", "x", "linkedin", "facebook"] },
+      "minItems": 1
+    },
+    "contentTypes": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["short-video", "image-post", "story", "reel", "article", "thread", "newsletter"] }
+    },
+    "postingFrequency": {
+      "type": "string",
+      "enum": ["daily", "3x/week", "weekly", "bi-weekly"]
+    },
+    "engagementStyle": {
+      "type": "string",
+      "enum": ["replies-only", "proactive", "community-focused", "minimal"]
+    },
+    "rlOptimizationEnabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  }
+}
