@@ -3,8 +3,12 @@
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const { Pool } = require('pg');
+const { Kafka } = require('kafkajs');
 require('dotenv').config();
 
+const logger = require('./logger');
 const analyticsRouter = require('./routes/analytics');
 
 const app = express();
@@ -14,9 +18,57 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/analytics', analyticsRouter);
+const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
+app.use('/api/', limiter);
 
+app.use('/api/analytics', analyticsRouter);
 app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'analytics-service' }));
 
-app.listen(PORT, () => console.log(`analytics-service running on port ${PORT}`));
-module.exports = app;
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+const kafka = new Kafka({ clientId: 'analytics-service', brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(',') });
+const consumer = kafka.consumer({ groupId: 'analytics-service-group' });
+
+async function startKafkaConsumer() {
+  try {
+    await consumer.connect();
+    await consumer.subscribe({ topics: ['analytics.metrics', 'campaign.events'], fromBeginning: false });
+    await consumer.run({
+      eachMessage: async ({ topic, message }) => {
+        try {
+          const data = JSON.parse(message.value.toString());
+          let campaignId, platform, eventType, metric, value, metadata;
+
+          if (topic === 'analytics.metrics') {
+            ({ campaign_id: campaignId, platform = 'unknown', event_type: eventType, metric, value = 0, metadata = {} } = data);
+          } else if (topic === 'campaign.events') {
+            const event = data.event || data.eventType || 'campaign_event';
+            campaignId = data.data?.id || data.campaign_id;
+            platform = 'platform';
+            eventType = event;
+            metric = 'event_count';
+            value = 1;
+            metadata = data.data || {};
+          }
+
+          if (!campaignId || !eventType) return;
+
+          await pool.query(
+            'INSERT INTO analytics_events (campaign_id, platform, event_type, metric, value, metadata) VALUES ($1,$2,$3,$4,$5,$6)',
+            [campaignId, platform, eventType, metric || eventType, value, JSON.stringify(metadata)]
+          );
+        } catch (err) {
+          logger.error('analytics kafka message error', { error: err.message, topic });
+        }
+      },
+    });
+    logger.info('Analytics Kafka consumer started');
+  } catch (err) {
+    logger.error('Analytics Kafka consumer failed', { error: err.message });
+  }
+}
+
+startKafkaConsumer();
+
+app.listen(PORT, () => logger.info(`analytics-service running on port ${PORT}`));
+module.exports = { app, pool };
