@@ -32,10 +32,10 @@ loops, and retry jobs.
   "time": "2026-01-15T08:00:00Z",
   "agent": "distribution-agent",
   "payload": {
-    "campaign_id": "camp_042",
+    "campaignId": "camp_042",
     "platform": "tiktok",
-    "asset_id": "asset_789",
-    "persona_id": "persona_001"
+    "assetId": "asset_789",
+    "personaId": "persona_001"
   }
 }
 ```

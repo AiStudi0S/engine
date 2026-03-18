@@ -22,7 +22,13 @@ class Agent {
     await this.consumer.subscribe({ topic: TOPIC_IN, fromBeginning: false });
     await this.consumer.run({
       eachMessage: async ({ message }) => {
-        const payload = JSON.parse(message.value.toString());
+        let payload;
+        try {
+          payload = JSON.parse(message.value.toString());
+        } catch (parseErr) {
+          console.error(`[${AGENT_ID}] failed to parse message:`, parseErr.message);
+          return;
+        }
         console.log(`[${AGENT_ID}] received:`, payload.intent);
         const result = await this.process(payload);
         await this.producer.send({ topic: TOPIC_OUT, messages: [{ value: JSON.stringify(result) }] });

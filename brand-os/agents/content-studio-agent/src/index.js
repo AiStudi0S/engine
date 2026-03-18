@@ -23,7 +23,13 @@ class ContentStudioAgent {
 
     await this.consumer.run({
       eachMessage: async ({ message }) => {
-        const payload = JSON.parse(message.value.toString());
+        let payload;
+        try {
+          payload = JSON.parse(message.value.toString());
+        } catch (parseErr) {
+          console.error(`[${AGENT_ID}] failed to parse message:`, parseErr.message);
+          return;
+        }
         const result = await this.process(payload);
         await this.producer.send({
           topic: TOPIC_OUT,

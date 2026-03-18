@@ -34,7 +34,13 @@ class MicroCreatorAgentTemplate {
 
     await this.consumer.run({
       eachMessage: async ({ message }) => {
-        const msg = JSON.parse(message.value.toString());
+        let msg;
+        try {
+          msg = JSON.parse(message.value.toString());
+        } catch (parseErr) {
+          console.error(`[${AGENT_ID}] failed to parse message:`, parseErr.message);
+          return;
+        }
         if (!this._isMessageForThisPersona(msg)) return;
         const result = await this.process(msg);
         if (result) await this.emit(result);
