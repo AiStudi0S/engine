@@ -52,7 +52,7 @@ async function savePost(campaignId, platform, content, status, externalId = null
   }
 }
 
-async function distributeToplatform(platform, content, campaignId) {
+async function distributeToPlatform(platform, content, campaignId) {
   const canonicalPlatform = platform === 'twitter' ? 'x' : platform;
   const connector = connectors[canonicalPlatform];
   if (!connector) {
@@ -90,7 +90,7 @@ async function startKafkaConsumer() {
           const cid = campaignId || campaign_id;
           if (!cid || !content) return;
           logger.info('processing campaign.publish', { campaignId: cid, platforms });
-          await Promise.all(platforms.map((p) => distributeToplatform(p, content, cid)));
+          await Promise.all(platforms.map((p) => distributeToPlatform(p, content, cid)));
         } catch (err) {
           logger.error('campaign.publish processing error', { error: err.message });
         }
@@ -111,7 +111,7 @@ app.post('/api/distribute', async (req, res) => {
     if (!campaignId || !content || !Array.isArray(platforms) || platforms.length === 0) {
       return res.status(400).json({ error: 'campaignId, content, and platforms (non-empty array) are required' });
     }
-    const results = await Promise.all(platforms.map((p) => distributeToplatform(p, content, campaignId)));
+    const results = await Promise.all(platforms.map((p) => distributeToPlatform(p, content, campaignId)));
     return res.status(202).json({ campaignId, results });
   } catch (err) {
     logger.error('distribute error', { error: err.message });

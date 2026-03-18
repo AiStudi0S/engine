@@ -1,6 +1,7 @@
 'use strict';
 
 const axios = require('axios');
+const { v4: uuidv4 } = require('uuid');
 
 class SendGridConnector {
   constructor(config = {}) {
@@ -45,7 +46,7 @@ class SendGridConnector {
         timeout: 15000,
       });
 
-      const messageId = response.headers['x-message-id'] || `sg_${Date.now()}`;
+      const messageId = response.headers['x-message-id'] || `sg_${uuidv4()}`;
       return { messageId, to: toList, subject, status: 'sent' };
     } catch (err) {
       const errorMsg = err.response?.data?.errors?.[0]?.message || err.message;
