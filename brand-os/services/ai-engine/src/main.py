@@ -16,6 +16,8 @@ load_dotenv()
 async def lifespan(app: FastAPI):  # type: ignore[type-arg]
     """Application lifespan handler."""
     print("AI Engine starting up...")
+    from .kafka_consumer import start_kafka_consumer
+    start_kafka_consumer()
     yield
     print("AI Engine shutting down...")
 

@@ -142,6 +142,23 @@
       "name": "agent.micro-creator.out",
       "partitions": 4,
       "replication": 1
+    },
+    {
+      "name": "notifications.send",
+      "description": "Notification delivery requests routed to notification-service",
+      "partitions": 2,
+      "replication": 1,
+      "config": { "retention.ms": 86400000 }
+    },
+    {
+      "name": "agent.ai-engine.in",
+      "partitions": 1,
+      "replication": 1
+    },
+    {
+      "name": "agent.ai-engine.out",
+      "partitions": 1,
+      "replication": 1
     }
   ]
 }
