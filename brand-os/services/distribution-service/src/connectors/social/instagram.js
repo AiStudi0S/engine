@@ -45,11 +45,25 @@ class InstagramConnector {
         { timeout: 15000 }
       );
 
+      const mediaId = publishRes.data.id;
+
+      // Fetch the canonical permalink (media_id is not a shortcode)
+      let permalink = null;
+      try {
+        const detailRes = await axios.get(`${this.baseUrl}/${mediaId}`, {
+          params: { fields: 'permalink', access_token: this.accessToken },
+          timeout: 10000,
+        });
+        permalink = detailRes.data.permalink || null;
+      } catch {
+        // Non-fatal: proceed without a permalink
+      }
+
       return {
-        id: publishRes.data.id,
+        id: mediaId,
         caption,
         platform: 'instagram',
-        url: `https://www.instagram.com/p/${publishRes.data.id}/`,
+        url: permalink,
       };
     } catch (err) {
       const errorMsg = err.response?.data?.error?.message || err.message;

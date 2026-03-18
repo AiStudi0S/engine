@@ -37,6 +37,15 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   );
 }
 
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 async function sendEmailNotification(notification) {
   if (!process.env.SENDGRID_API_KEY) {
     logger.warn('SendGrid not configured, skipping email');
@@ -48,7 +57,7 @@ async function sendEmailNotification(notification) {
       from: process.env.SENDGRID_FROM_EMAIL || 'noreply@brandos.ai',
       subject: notification.title,
       text: notification.body,
-      html: notification.metadata?.html || `<p>${notification.body}</p>`,
+      html: notification.metadata?.html || `<p>${escapeHtml(notification.body)}</p>`,
     });
     return true;
   } catch (err) {

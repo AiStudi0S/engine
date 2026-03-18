@@ -61,12 +61,13 @@ const worker = new Worker(
     await pool.query("UPDATE scheduled_jobs SET status='running', updated_at=NOW() WHERE id=$1", [dbJobId]).catch(() => {});
 
     const topic = KAFKA_TOPIC_MAP[jobType] || 'analytics.metrics';
-    if (producerReady) {
-      await producer.send({
-        topic,
-        messages: [{ key: dbJobId, value: JSON.stringify({ jobType, payload, jobId: dbJobId, timestamp: new Date().toISOString() }) }],
-      });
+    if (!producerReady) {
+      throw new Error('Kafka producer not ready — cannot publish job event');
     }
+    await producer.send({
+      topic,
+      messages: [{ key: dbJobId, value: JSON.stringify({ jobType, payload, jobId: dbJobId, timestamp: new Date().toISOString() }) }],
+    });
 
     await pool.query(
       "UPDATE scheduled_jobs SET status='completed', result=$1, updated_at=NOW() WHERE id=$2",
@@ -102,16 +103,22 @@ app.post('/api/schedules', async (req, res) => {
 
     const dbJobId = uuidv4();
     const scheduledAtDate = scheduledAt ? new Date(scheduledAt) : new Date();
+    if (scheduledAt && isNaN(scheduledAtDate.getTime())) {
+      return res.status(400).json({ error: 'scheduledAt must be a valid ISO 8601 timestamp' });
+    }
 
     await pool.query(
       'INSERT INTO scheduled_jobs (id, job_type, payload, scheduled_at, status) VALUES ($1,$2,$3,$4,$5)',
       [dbJobId, type, JSON.stringify(payload), scheduledAtDate, 'pending']
     );
 
-    const delay = scheduledAt ? Math.max(0, new Date(scheduledAt).getTime() - Date.now()) : 0;
+    const delay = scheduledAt ? Math.max(0, scheduledAtDate.getTime() - Date.now()) : 0;
     const jobOptions = cronExpression ? { repeat: { pattern: cronExpression } } : { delay };
 
     const bullJob = await queue.add(type, { jobType: type, payload, dbJobId }, jobOptions);
+
+    // Persist the BullMQ job id so we can remove it on cancellation
+    await pool.query('UPDATE scheduled_jobs SET bull_job_id=$1 WHERE id=$2', [bullJob.id, dbJobId]).catch(() => {});
 
     return res.status(201).json({ id: dbJobId, bullJobId: bullJob.id, type, payload, scheduledAt: scheduledAtDate, status: 'pending' });
   } catch (err) {
@@ -153,8 +160,29 @@ app.get('/api/schedules/:id/status', async (req, res) => {
 // DELETE /api/schedules/:id
 app.delete('/api/schedules/:id', async (req, res) => {
   try {
-    const result = await pool.query("UPDATE scheduled_jobs SET status='failed', error='cancelled by user', updated_at=NOW() WHERE id=$1 AND status='pending' RETURNING id", [req.params.id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'job not found or not cancellable' });
+    const existing = await pool.query(
+      "SELECT id, bull_job_id FROM scheduled_jobs WHERE id=$1 AND status='pending'",
+      [req.params.id]
+    );
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'job not found or not cancellable' });
+    }
+
+    // Remove from BullMQ to prevent execution
+    const { bull_job_id } = existing.rows[0];
+    if (bull_job_id) {
+      try {
+        const bullJob = await queue.getJob(bull_job_id);
+        if (bullJob) await bullJob.remove();
+      } catch (bullErr) {
+        logger.warn('could not remove BullMQ job', { bull_job_id, error: bullErr.message });
+      }
+    }
+
+    await pool.query(
+      "UPDATE scheduled_jobs SET status='failed', error='cancelled by user', updated_at=NOW() WHERE id=$1",
+      [req.params.id]
+    );
     return res.status(204).send();
   } catch (err) {
     logger.error('delete schedule error', { error: err.message });

@@ -43,9 +43,9 @@ router.get('/campaigns/:id/metrics', async (req, res) => {
     const metrics = { campaignId: id, impressions: 0, clicks: 0, conversions: 0, revenue: 0, spend: 0, events: {} };
     result.rows.forEach((row) => {
       metrics.events[row.event_type] = { total: parseFloat(row.total_value), count: parseInt(row.event_count), avg: parseFloat(row.avg_value) };
-      if (row.event_type === 'impression') metrics.impressions = parseInt(row.event_count);
-      else if (row.event_type === 'click') metrics.clicks = parseInt(row.event_count);
-      else if (row.event_type === 'conversion') metrics.conversions = parseInt(row.event_count);
+      if (row.event_type === 'impression') metrics.impressions = parseFloat(row.total_value);
+      else if (row.event_type === 'click') metrics.clicks = parseFloat(row.total_value);
+      else if (row.event_type === 'conversion') metrics.conversions = parseFloat(row.total_value);
       else if (row.event_type === 'revenue') metrics.revenue = parseFloat(row.total_value);
       else if (row.event_type === 'spend') metrics.spend = parseFloat(row.total_value);
     });

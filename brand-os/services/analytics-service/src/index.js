@@ -32,7 +32,8 @@ const consumer = kafka.consumer({ groupId: 'analytics-service-group' });
 async function startKafkaConsumer() {
   try {
     await consumer.connect();
-    await consumer.subscribe({ topics: ['analytics.metrics', 'campaign.events'], fromBeginning: false });
+    await consumer.subscribe({ topic: 'analytics.metrics', fromBeginning: false });
+    await consumer.subscribe({ topic: 'campaign.events', fromBeginning: false });
     await consumer.run({
       eachMessage: async ({ topic, message }) => {
         try {
@@ -44,9 +45,9 @@ async function startKafkaConsumer() {
           } else if (topic === 'campaign.events') {
             const event = data.event || data.eventType || 'campaign_event';
             campaignId = data.data?.id || data.campaign_id;
-            platform = 'platform';
+            platform = data.data?.platform || null;
             eventType = event;
-            metric = 'event_count';
+            metric = 'campaign_event';
             value = 1;
             metadata = data.data || {};
           }

@@ -35,16 +35,13 @@ async function storeRefreshToken(userId, rawToken) {
 router.post('/register', async (req, res) => {
   try {
     const email = (req.body.email || '').trim().toLowerCase();
-    const { password, role = 'creator' } = req.body;
+    const { password } = req.body;
+    const role = 'creator'; // always default; role elevation requires an authenticated admin endpoint
     if (!email || !password) {
       return res.status(400).json({ error: 'email and password are required' });
     }
     if (password.length < MIN_PASSWORD_LENGTH) {
       return res.status(400).json({ error: `password must be at least ${MIN_PASSWORD_LENGTH} characters` });
-    }
-    const allowed_roles = ['admin', 'manager', 'creator', 'viewer'];
-    if (!allowed_roles.includes(role)) {
-      return res.status(400).json({ error: `role must be one of: ${allowed_roles.join(', ')}` });
     }
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existing.rows.length > 0) {

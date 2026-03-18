@@ -1,6 +1,49 @@
 'use strict';
 
 const axios = require('axios');
+const crypto = require('crypto');
+
+/**
+ * Build an OAuth 1.0a Authorization header for Twitter API v2.
+ * Twitter tweet creation (POST /2/tweets) requires user-context auth,
+ * not a bare bearer token.
+ */
+function buildOAuth1Header(method, url, credentials) {
+  const oauthParams = {
+    oauth_consumer_key: credentials.apiKey,
+    oauth_nonce: crypto.randomBytes(16).toString('hex'),
+    oauth_signature_method: 'HMAC-SHA1',
+    oauth_timestamp: Math.floor(Date.now() / 1000).toString(),
+    oauth_token: credentials.accessToken,
+    oauth_version: '1.0',
+  };
+
+  // Signature base string: sorted, percent-encoded key=value pairs
+  const sortedKeys = Object.keys(oauthParams).sort();
+  const paramString = sortedKeys
+    .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(oauthParams[k])}`)
+    .join('&');
+
+  const signatureBase = [
+    method.toUpperCase(),
+    encodeURIComponent(url),
+    encodeURIComponent(paramString),
+  ].join('&');
+
+  const signingKey = `${encodeURIComponent(credentials.apiSecret)}&${encodeURIComponent(credentials.accessTokenSecret)}`;
+  oauthParams.oauth_signature = crypto
+    .createHmac('sha1', signingKey)
+    .update(signatureBase)
+    .digest('base64');
+
+  return (
+    'OAuth ' +
+    Object.keys(oauthParams)
+      .sort()
+      .map((k) => `${encodeURIComponent(k)}="${encodeURIComponent(oauthParams[k])}"`)
+      .join(', ')
+  );
+}
 
 class TwitterConnector {
   constructor(config = {}) {
@@ -18,27 +61,35 @@ class TwitterConnector {
     if (!text) throw new Error('tweet text is required');
     if (text.length > 280) throw new Error('tweet exceeds 280 character limit');
 
-    if (!this.bearerToken && !this.accessToken) {
-      throw new Error('Twitter API credentials not configured');
+    if (!this.apiKey || !this.apiSecret || !this.accessToken || !this.accessTokenSecret) {
+      throw new Error(
+        'Twitter API credentials not configured — TWITTER_API_KEY, TWITTER_API_SECRET, ' +
+        'TWITTER_ACCESS_TOKEN, and TWITTER_ACCESS_TOKEN_SECRET are all required'
+      );
     }
 
     try {
+      const url = `${this.baseUrl}/tweets`;
       const body = { text };
       if (mediaIds.length > 0) {
         body.media = { media_ids: mediaIds };
       }
 
-      const response = await axios.post(
-        `${this.baseUrl}/tweets`,
-        body,
-        {
-          headers: {
-            'Authorization': `Bearer ${this.bearerToken}`,
-            'Content-Type': 'application/json',
-          },
-          timeout: 10000,
-        }
-      );
+      // POST /2/tweets requires user-context OAuth 1.0a, not app-only bearer token
+      const authHeader = buildOAuth1Header('POST', url, {
+        apiKey: this.apiKey,
+        apiSecret: this.apiSecret,
+        accessToken: this.accessToken,
+        accessTokenSecret: this.accessTokenSecret,
+      });
+
+      const response = await axios.post(url, body, {
+        headers: {
+          Authorization: authHeader,
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000,
+      });
 
       return {
         id: response.data.data.id,
@@ -55,11 +106,12 @@ class TwitterConnector {
 
   async getAnalytics(postId) {
     try {
+      // GET requests can use the app-only bearer token
       const response = await axios.get(
         `${this.baseUrl}/tweets/${postId}`,
         {
           params: { 'tweet.fields': 'public_metrics' },
-          headers: { 'Authorization': `Bearer ${this.bearerToken}` },
+          headers: { Authorization: `Bearer ${this.bearerToken}` },
           timeout: 10000,
         }
       );

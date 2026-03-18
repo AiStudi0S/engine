@@ -23,7 +23,7 @@ async function startKafkaConsumer() {
           const data = JSON.parse(message.value.toString());
           const { email, name, company, phone, source = 'email', campaign_id, metadata = {} } = data;
           if (!email) return;
-          const existing = await pool.query('SELECT id FROM leads WHERE email = $1 AND campaign_id = $2', [email, campaign_id || null]);
+          const existing = await pool.query('SELECT id FROM leads WHERE email = $1 AND campaign_id IS NOT DISTINCT FROM $2', [email, campaign_id || null]);
           if (existing.rows.length > 0) return;
           await pool.query(
             'INSERT INTO leads (id, email, name, company, phone, source, status, campaign_id, metadata) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
@@ -47,7 +47,7 @@ startKafkaConsumer();
 router.get('/stats', async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT status, COUNT(*)::int AS count FROM leads WHERE status != 'deleted' GROUP BY status"
+      "SELECT status, COUNT(*)::int AS count FROM leads GROUP BY status"
     );
     const stats = {};
     result.rows.forEach((row) => { stats[row.status] = row.count; });
@@ -70,7 +70,7 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ error: `invalid status: '${status}'. Must be one of: ${Object.values(LEAD_STATUSES).join(', ')}` });
     }
 
-    const conditions = ["status != 'deleted'"];
+    const conditions = [];
     const params = [];
 
     if (status) { params.push(status); conditions.push(`status = $${params.length}`); }
@@ -117,7 +117,7 @@ router.post('/', async (req, res) => {
 // GET /api/leads/:id
 router.get('/:id', async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM leads WHERE id = $1 AND status != 'deleted'", [req.params.id]);
+    const result = await pool.query("SELECT * FROM leads WHERE id = $1", [req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'lead not found' });
     return res.json(result.rows[0]);
   } catch (err) {
@@ -129,7 +129,7 @@ router.get('/:id', async (req, res) => {
 // PUT /api/leads/:id
 router.put('/:id', async (req, res) => {
   try {
-    const existing = await pool.query("SELECT * FROM leads WHERE id = $1 AND status != 'deleted'", [req.params.id]);
+    const existing = await pool.query("SELECT * FROM leads WHERE id = $1", [req.params.id]);
     if (existing.rows.length === 0) return res.status(404).json({ error: 'lead not found' });
     const PATCHABLE = ['status', 'score', 'name', 'company', 'phone', 'metadata'];
     const updates = {};

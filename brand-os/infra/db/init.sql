@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS scheduled_jobs (
   payload JSONB NOT NULL DEFAULT '{}',
   scheduled_at TIMESTAMPTZ NOT NULL,
   status VARCHAR(10) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','running','completed','failed')),
+  bull_job_id VARCHAR(255),
   result JSONB,
   error TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
