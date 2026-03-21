@@ -87,7 +87,9 @@ class Agent {
   }
 
   async optimizePricing({ currentPrice, competitorPrices = [], conversionRate, elasticity, productType }) {
-    if (!currentPrice) throw new Error('currentPrice is required');
+    if (currentPrice == null || typeof currentPrice !== 'number' || Number.isNaN(currentPrice)) {
+      throw new Error('currentPrice must be a valid number');
+    }
 
     const avgCompetitor = competitorPrices.length > 0
       ? competitorPrices.reduce((a, b) => a + b, 0) / competitorPrices.length

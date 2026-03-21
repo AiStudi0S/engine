@@ -57,7 +57,7 @@ async function sendEmailNotification(notification) {
       from: process.env.SENDGRID_FROM_EMAIL || 'noreply@brandos.ai',
       subject: notification.title,
       text: notification.body,
-      html: notification.metadata?.html || `<p>${escapeHtml(notification.body)}</p>`,
+      html: `<p>${escapeHtml(notification.body)}</p>`,
     });
     return true;
   } catch (err) {
@@ -124,12 +124,13 @@ async function startKafkaConsumer() {
           if (!user_id || !channel || !title) return;
           const allowed_channels = ['email', 'push', 'sms'];
           if (!allowed_channels.includes(channel)) return;
+          const normalizedBody = body || '';
           const id = uuidv4();
           await pool.query(
             'INSERT INTO notifications (id, user_id, type, channel, title, body, status, metadata) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
-            [id, user_id, type || 'general', channel, title, body || '', 'pending', JSON.stringify(metadata)]
+            [id, user_id, type || 'general', channel, title, normalizedBody, 'pending', JSON.stringify(metadata)]
           );
-          const notification = { id, user_id, type, channel, title, body, metadata };
+          const notification = { id, user_id, type, channel, title, body: normalizedBody, metadata };
           await processNotification(notification);
         } catch (err) {
           logger.error('notifications.send processing error', { error: err.message });

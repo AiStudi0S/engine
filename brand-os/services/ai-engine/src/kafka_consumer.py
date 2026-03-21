@@ -10,8 +10,8 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
-def start_kafka_consumer() -> threading.Thread | None:
-    """Start the Kafka consumer in a background thread. Returns the thread or None if Kafka unavailable."""
+def start_kafka_consumer() -> threading.Thread:
+    """Start the Kafka consumer in a background thread and return the background thread."""
     kafka_brokers = os.getenv("KAFKA_BROKERS", "localhost:9092")
 
     def _run() -> None:

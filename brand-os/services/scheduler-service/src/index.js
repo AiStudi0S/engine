@@ -4,7 +4,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const { Queue, Worker, QueueEvents } = require('bullmq');
+const { Queue, Worker } = require('bullmq');
 const { Pool } = require('pg');
 const { Kafka } = require('kafkajs');
 const { v4: uuidv4 } = require('uuid');
@@ -172,8 +172,18 @@ app.delete('/api/schedules/:id', async (req, res) => {
     const { bull_job_id } = existing.rows[0];
     if (bull_job_id) {
       try {
+        // Try removing as a normal (delayed) job first
         const bullJob = await queue.getJob(bull_job_id);
-        if (bullJob) await bullJob.remove();
+        if (bullJob) {
+          await bullJob.remove();
+        } else {
+          // If not found as a regular job, attempt to remove as a repeatable
+          const repeatableJobs = await queue.getRepeatableJobs();
+          const repeatKey = repeatableJobs.find((j) => j.id === bull_job_id || j.key === bull_job_id)?.key;
+          if (repeatKey) {
+            await queue.removeRepeatableByKey(repeatKey);
+          }
+        }
       } catch (bullErr) {
         logger.warn('could not remove BullMQ job', { bull_job_id, error: bullErr.message });
       }

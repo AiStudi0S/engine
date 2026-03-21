@@ -123,7 +123,7 @@ Provide 3-4 concise strategic recommendations. Be specific and actionable.`;
   }
 
   optimizeBudgetHandler({ budget, platforms = [], performanceHistory = {} }) {
-    if (!budget || !platforms.length) throw new Error('budget and platforms are required');
+    if (budget == null || !Number.isFinite(budget) || !platforms.length) throw new Error('budget and platforms are required');
     const allocation = optimizeBudget({ totalBudget: budget, platforms, performanceHistory });
     const recommendations = platforms.map((p) => {
       const history = performanceHistory[p];

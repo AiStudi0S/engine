@@ -84,14 +84,17 @@ class Agent {
     return { scheduled: true, job: response.data, campaignId, platforms, scheduledAt };
   }
 
-  async retryFailed({ campaignId, platforms }) {
+  async retryFailed({ campaignId, platforms, content }) {
     if (!campaignId) throw new Error('campaignId is required');
+    if (!content || typeof content !== 'object' || Object.keys(content).length === 0) {
+      throw new Error('content is required for retry — provide the original post content');
+    }
     const targetPlatforms = platforms || [];
     const results = [];
     for (const platform of targetPlatforms) {
       try {
         const r = await axios.post(`${DISTRIBUTION_SERVICE_URL}/api/distribute`, {
-          campaignId, content: {}, platforms: [platform],
+          campaignId, content, platforms: [platform],
         }, { timeout: 30000 });
         results.push({ platform, status: 'retried', result: r.data });
       } catch (err) {

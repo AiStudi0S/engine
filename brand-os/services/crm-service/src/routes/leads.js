@@ -75,8 +75,16 @@ router.get('/', async (req, res) => {
 
     if (status) { params.push(status); conditions.push(`status = $${params.length}`); }
     if (source) { params.push(source); conditions.push(`source = $${params.length}`); }
-    if (minScore !== undefined) { params.push(parseInt(minScore, 10)); conditions.push(`score >= $${params.length}`); }
-    if (maxScore !== undefined) { params.push(parseInt(maxScore, 10)); conditions.push(`score <= $${params.length}`); }
+    if (minScore !== undefined) {
+      const minScoreParsed = parseInt(minScore, 10);
+      if (isNaN(minScoreParsed)) return res.status(400).json({ error: 'minScore must be a valid integer' });
+      params.push(minScoreParsed); conditions.push(`score >= $${params.length}`);
+    }
+    if (maxScore !== undefined) {
+      const maxScoreParsed = parseInt(maxScore, 10);
+      if (isNaN(maxScoreParsed)) return res.status(400).json({ error: 'maxScore must be a valid integer' });
+      params.push(maxScoreParsed); conditions.push(`score <= $${params.length}`);
+    }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
     const countResult = await pool.query(`SELECT COUNT(*) FROM leads ${where}`, params);
