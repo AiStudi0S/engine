@@ -117,8 +117,12 @@ app.post('/api/schedules', async (req, res) => {
 
     const bullJob = await queue.add(type, { jobType: type, payload, dbJobId }, jobOptions);
 
-    // Persist the BullMQ job id so we can remove it on cancellation
-    await pool.query('UPDATE scheduled_jobs SET bull_job_id=$1 WHERE id=$2', [bullJob.id, dbJobId]).catch(() => {});
+    // For cron (repeatable) jobs, store the stable repeat key; for delayed jobs store the job ID.
+    // BullMQ repeatable job IDs change on each run, but the repeat key is stable.
+    const bull_job_id_to_store = cronExpression
+      ? (bullJob.opts?.repeat?.key || String(bullJob.id))
+      : String(bullJob.id);
+    await pool.query('UPDATE scheduled_jobs SET bull_job_id=$1 WHERE id=$2', [bull_job_id_to_store, dbJobId]).catch(() => {});
 
     return res.status(201).json({ id: dbJobId, bullJobId: bullJob.id, type, payload, scheduledAt: scheduledAtDate, status: 'pending' });
   } catch (err) {

@@ -28,8 +28,9 @@ let producerReady = false;
 async function publishEvent(eventType, data) {
   if (!producerReady) return;
   try {
+    const topic = eventType === 'campaign.created' ? 'campaign.created' : 'campaign.events';
     await producer.send({
-      topic: 'campaign.events',
+      topic,
       messages: [{ key: data.id, value: JSON.stringify({ event: eventType, data, timestamp: new Date().toISOString() }) }],
     });
   } catch (err) {

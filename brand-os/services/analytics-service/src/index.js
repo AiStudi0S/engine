@@ -9,7 +9,7 @@ const { Kafka } = require('kafkajs');
 require('dotenv').config();
 
 const logger = require('./logger');
-const analyticsRouter = require('./routes/analytics');
+const createAnalyticsRouter = require('./routes/analytics');
 
 const app = express();
 const PORT = process.env.PORT || 3004;
@@ -21,10 +21,11 @@ app.use(express.json());
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
 app.use('/api/', limiter);
 
-app.use('/api/analytics', analyticsRouter);
-app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'analytics-service' }));
-
+// Single shared pool — used by both the HTTP routes and the Kafka consumer
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+app.use('/api/analytics', createAnalyticsRouter(pool));
+app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'analytics-service' }));
 
 const kafka = new Kafka({ clientId: 'analytics-service', brokers: (process.env.KAFKA_BROKERS || 'localhost:9092').split(',') });
 const consumer = kafka.consumer({ groupId: 'analytics-service-group' });

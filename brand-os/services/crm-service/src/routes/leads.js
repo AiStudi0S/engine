@@ -23,13 +23,14 @@ async function startKafkaConsumer() {
           const data = JSON.parse(message.value.toString());
           const { email, name, company, phone, source = 'email', campaign_id, metadata = {} } = data;
           if (!email) return;
-          const existing = await pool.query('SELECT id FROM leads WHERE email = $1 AND campaign_id IS NOT DISTINCT FROM $2', [email, campaign_id || null]);
-          if (existing.rows.length > 0) return;
-          await pool.query(
-            'INSERT INTO leads (id, email, name, company, phone, source, status, campaign_id, metadata) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+          // Atomic upsert — unique partial indexes on leads(email, campaign_id) prevent duplicates
+          const inserted = await pool.query(
+            `INSERT INTO leads (id, email, name, company, phone, source, status, campaign_id, metadata)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+             ON CONFLICT DO NOTHING`,
             [uuidv4(), email, name || null, company || null, phone || null, LEAD_SOURCES.includes(source) ? source : 'email', 'new', campaign_id || null, JSON.stringify(metadata)]
           );
-          logger.info('lead created from kafka', { email });
+          if (inserted.rowCount > 0) logger.info('lead created from kafka', { email });
         } catch (err) {
           logger.error('leads.inbound processing error', { error: err.message });
         }
@@ -109,11 +110,14 @@ router.post('/', async (req, res) => {
     if (!LEAD_SOURCES.includes(source)) {
       return res.status(400).json({ error: `invalid source: ${source}. Must be one of: ${LEAD_SOURCES.join(', ')}` });
     }
-    if (score < 0 || score > 100) return res.status(400).json({ error: 'score must be between 0 and 100' });
+    const scoreParsed = Number(score);
+    if (!Number.isFinite(scoreParsed) || scoreParsed < 0 || scoreParsed > 100) {
+      return res.status(400).json({ error: 'score must be a number between 0 and 100' });
+    }
     const id = uuidv4();
     const result = await pool.query(
       'INSERT INTO leads (id, email, name, company, phone, source, status, score, campaign_id, metadata) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *',
-      [id, email, name || null, company || null, phone || null, source, 'new', score, campaign_id || null, JSON.stringify(metadata)]
+      [id, email, name || null, company || null, phone || null, source, 'new', scoreParsed, campaign_id || null, JSON.stringify(metadata)]
     );
     return res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -145,8 +149,12 @@ router.put('/:id', async (req, res) => {
     if (updates.status && !Object.values(LEAD_STATUSES).includes(updates.status)) {
       return res.status(400).json({ error: `invalid status: ${updates.status}` });
     }
-    if (updates.score !== undefined && (updates.score < 0 || updates.score > 100)) {
-      return res.status(400).json({ error: 'score must be between 0 and 100' });
+    if (updates.score !== undefined) {
+      const parsedScore = Number(updates.score);
+      if (!Number.isFinite(parsedScore) || parsedScore < 0 || parsedScore > 100) {
+        return res.status(400).json({ error: 'score must be a number between 0 and 100' });
+      }
+      updates.score = parsedScore;
     }
     const setClauses = Object.keys(updates).map((k, i) => `${k} = $${i + 1}`);
     setClauses.push(`updated_at = NOW()`);
@@ -179,10 +187,12 @@ router.delete('/:id', async (req, res) => {
 router.put('/:id/score', async (req, res) => {
   try {
     const { score } = req.body;
-    if (score === undefined || score < 0 || score > 100) {
-      return res.status(400).json({ error: 'score must be between 0 and 100' });
+    if (score === undefined) return res.status(400).json({ error: 'score is required' });
+    const scoreParsed = Number(score);
+    if (!Number.isFinite(scoreParsed) || scoreParsed < 0 || scoreParsed > 100) {
+      return res.status(400).json({ error: 'score must be a number between 0 and 100' });
     }
-    const result = await pool.query('UPDATE leads SET score=$1, updated_at=NOW() WHERE id=$2 RETURNING *', [score, req.params.id]);
+    const result = await pool.query('UPDATE leads SET score=$1, updated_at=NOW() WHERE id=$2 RETURNING *', [scoreParsed, req.params.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'lead not found' });
     return res.json(result.rows[0]);
   } catch (err) {

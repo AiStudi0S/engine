@@ -106,9 +106,16 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_campaigns_status ON campaigns(status);
 CREATE INDEX IF NOT EXISTS idx_campaigns_brand_id ON campaigns(brand_id);
+-- Unique deduplication indexes: one email per campaign, and one per "no campaign" bucket
+CREATE UNIQUE INDEX IF NOT EXISTS ux_leads_email_campaign_id
+  ON leads(email, campaign_id)
+  WHERE campaign_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_leads_email_no_campaign
+  ON leads(email)
+  WHERE campaign_id IS NULL;
+-- Supporting indexes for common lead filters
 CREATE INDEX IF NOT EXISTS idx_leads_campaign_id ON leads(campaign_id);
 CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
-CREATE INDEX IF NOT EXISTS idx_leads_email ON leads(email);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_campaign_id ON analytics_events(campaign_id);
 CREATE INDEX IF NOT EXISTS idx_analytics_events_recorded_at ON analytics_events(recorded_at);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);

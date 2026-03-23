@@ -11,6 +11,8 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # NOTE: init.sql runs only when the postgres_data volume is empty (first start).
+      # Schema changes after the initial bootstrap require a manual migration or volume reset.
       - ./brand-os/infra/db/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U brandos"]
