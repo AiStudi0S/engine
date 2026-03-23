@@ -23,7 +23,8 @@ async function startKafkaConsumer() {
           const data = JSON.parse(message.value.toString());
           const { email, name, company, phone, source = 'email', campaign_id, metadata = {} } = data;
           if (!email) return;
-          // Atomic upsert — unique partial indexes on leads(email, campaign_id) prevent duplicates
+          // Atomic upsert — ux_leads_email_campaign_id and ux_leads_email_no_campaign partial indexes
+          // enforce uniqueness. ON CONFLICT without an explicit target covers both partial indexes.
           const inserted = await pool.query(
             `INSERT INTO leads (id, email, name, company, phone, source, status, campaign_id, metadata)
              VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)

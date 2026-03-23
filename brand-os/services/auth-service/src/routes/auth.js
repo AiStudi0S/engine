@@ -109,22 +109,25 @@ router.post('/refresh', async (req, res) => {
     const user = { id: row.user_id, email: row.email, role: row.role };
     const accessToken = generateAccessToken(user);
 
-    // Rotate the refresh token: delete the old one and issue a new one
+    // Rotate the refresh token: delete the old one and issue a new one (dedicated client for transaction)
     const newRawRefresh = crypto.randomBytes(40).toString('hex');
     const newHash = crypto.createHash('sha256').update(newRawRefresh).digest('hex');
     const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
+    const client = await pool.connect();
     try {
-      await pool.query('BEGIN');
-      await pool.query('DELETE FROM refresh_tokens WHERE id = $1', [row.id]);
-      await pool.query(
+      await client.query('BEGIN');
+      await client.query('DELETE FROM refresh_tokens WHERE id = $1', [row.id]);
+      await client.query(
         'INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)',
         [row.user_id, newHash, newExpiresAt]
       );
-      await pool.query('COMMIT');
+      await client.query('COMMIT');
     } catch (txErr) {
-      await pool.query('ROLLBACK');
+      await client.query('ROLLBACK');
       logger.error('[auth] refresh token rotation error', { error: txErr.message });
       return res.status(500).json({ error: 'internal server error' });
+    } finally {
+      client.release();
     }
 
     return res.json({ access_token: accessToken, refresh_token: newRawRefresh });
