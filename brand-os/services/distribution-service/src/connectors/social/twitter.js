@@ -4,6 +4,14 @@ const axios = require('axios');
 const crypto = require('crypto');
 
 /**
+ * RFC3986 percent-encoding. `encodeURIComponent` leaves `!'()*` unescaped,
+ * which can produce invalid OAuth 1.0a signatures when credentials contain those chars.
+ */
+function rfc3986Encode(str) {
+  return encodeURIComponent(String(str)).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+}
+
+/**
  * Build an OAuth 1.0a Authorization header for Twitter API v2.
  * Twitter tweet creation (POST /2/tweets) requires user-context auth,
  * not a bare bearer token.
@@ -18,19 +26,19 @@ function buildOAuth1Header(method, url, credentials) {
     oauth_version: '1.0',
   };
 
-  // Signature base string: sorted, percent-encoded key=value pairs
+  // Signature base string: sorted, RFC3986 percent-encoded key=value pairs
   const sortedKeys = Object.keys(oauthParams).sort();
   const paramString = sortedKeys
-    .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(oauthParams[k])}`)
+    .map((k) => `${rfc3986Encode(k)}=${rfc3986Encode(oauthParams[k])}`)
     .join('&');
 
   const signatureBase = [
     method.toUpperCase(),
-    encodeURIComponent(url),
-    encodeURIComponent(paramString),
+    rfc3986Encode(url),
+    rfc3986Encode(paramString),
   ].join('&');
 
-  const signingKey = `${encodeURIComponent(credentials.apiSecret)}&${encodeURIComponent(credentials.accessTokenSecret)}`;
+  const signingKey = `${rfc3986Encode(credentials.apiSecret)}&${rfc3986Encode(credentials.accessTokenSecret)}`;
   oauthParams.oauth_signature = crypto
     .createHmac('sha1', signingKey)
     .update(signatureBase)
@@ -40,7 +48,7 @@ function buildOAuth1Header(method, url, credentials) {
     'OAuth ' +
     Object.keys(oauthParams)
       .sort()
-      .map((k) => `${encodeURIComponent(k)}="${encodeURIComponent(oauthParams[k])}"`)
+      .map((k) => `${rfc3986Encode(k)}="${rfc3986Encode(oauthParams[k])}"`)
       .join(', ')
   );
 }

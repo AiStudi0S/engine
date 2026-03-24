@@ -119,8 +119,11 @@ async function startKafkaConsumer() {
     await consumer.run({
       eachMessage: async ({ message }) => {
         try {
-          const data = JSON.parse(message.value.toString());
-          const { user_id, type, channel, title, body, metadata = {} } = data;
+          const raw = JSON.parse(message.value.toString());
+          // Scheduler-service publishes payload fields at the top level
+          // (e.g. { user_id, channel, title, body, ..., _jobType, _jobId }).
+          // Direct HTTP producers also use top-level fields, so no unwrapping needed.
+          const { user_id, type, channel, title, body, metadata = {} } = raw;
           if (!user_id || !channel || !title) return;
           const allowed_channels = ['email', 'push', 'sms'];
           if (!allowed_channels.includes(channel)) return;

@@ -69,13 +69,13 @@ services:
       echo 'Waiting for Kafka to be ready...'
       cub kafka-ready -b kafka:9092 1 30
       echo 'Creating Kafka topics...'
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic campaign.events --partitions 6 --replication-factor 1
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic campaign.publish --partitions 3 --replication-factor 1
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic campaign.created --partitions 2 --replication-factor 1
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic analytics.metrics --partitions 6 --replication-factor 1
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic leads.inbound --partitions 3 --replication-factor 1
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic approval.required --partitions 1 --replication-factor 1
-      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic notifications.send --partitions 2 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic campaign.events --partitions 6 --replication-factor 1 --config retention.ms=604800000 --config cleanup.policy=delete
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic campaign.publish --partitions 3 --replication-factor 1 --config retention.ms=86400000
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic campaign.created --partitions 2 --replication-factor 1 --config retention.ms=604800000
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic analytics.metrics --partitions 6 --replication-factor 1 --config retention.ms=604800000
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic leads.inbound --partitions 3 --replication-factor 1 --config retention.ms=604800000
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic approval.required --partitions 1 --replication-factor 1 --config retention.ms=259200000
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic notifications.send --partitions 2 --replication-factor 1 --config retention.ms=86400000
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.brand-intelligence.in --partitions 1 --replication-factor 1
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.brand-intelligence.out --partitions 1 --replication-factor 1
       kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.content-studio.in --partitions 1 --replication-factor 1

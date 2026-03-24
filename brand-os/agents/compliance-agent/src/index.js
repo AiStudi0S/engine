@@ -142,6 +142,13 @@ class Agent {
     if (!campaignId || budget === undefined || spent === undefined) {
       throw new Error('campaignId, budget, and spent are required');
     }
+    if (typeof budget !== 'number' || !Number.isFinite(budget) || budget <= 0) {
+      return {
+        campaignId, budget, spent, spendRatio: null, withinBudget: false, warningTriggered: false,
+        violations: [{ type: 'invalid_budget', severity: 'critical', message: `Budget must be a positive number. Received: ${budget}` }],
+        checkedAt: new Date().toISOString(),
+      };
+    }
     const spendRatio = spent / budget;
     const withinBudget = spent <= budget;
     const warningTriggered = spendRatio >= warningThreshold;

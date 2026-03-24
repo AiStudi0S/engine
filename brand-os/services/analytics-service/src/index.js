@@ -42,6 +42,8 @@ async function startKafkaConsumer() {
           let campaignId, platform, eventType, metric, value, metadata;
 
           if (topic === 'analytics.metrics') {
+            // Scheduler-service publishes payload fields at the top level
+            // (e.g. { campaign_id, event_type, ..., _jobType, _jobId }).
             ({ campaign_id: campaignId, platform = 'unknown', event_type: eventType, metric, value = 0, metadata = {} } = data);
           } else if (topic === 'campaign.events') {
             const event = data.event || data.eventType || 'campaign_event';

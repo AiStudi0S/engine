@@ -58,6 +58,10 @@ router.post('/register', async (req, res) => {
     await storeRefreshToken(user.id, rawRefresh);
     return res.status(201).json({ access_token: accessToken, refresh_token: rawRefresh, user: { id: user.id, email: user.email, role: user.role } });
   } catch (err) {
+    // Race-condition guard: if two requests slip past the SELECT, catch the unique constraint violation
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'email already registered' });
+    }
     logger.error('[auth] register error', { error: err.message });
     return res.status(500).json({ error: 'internal server error' });
   }
@@ -94,36 +98,49 @@ router.post('/refresh', async (req, res) => {
     const { refresh_token } = req.body;
     if (!refresh_token) return res.status(400).json({ error: 'refresh_token required' });
     const hash = crypto.createHash('sha256').update(refresh_token).digest('hex');
-    const result = await pool.query(
-      'SELECT rt.id, rt.user_id, rt.expires_at, u.email, u.role FROM refresh_tokens rt JOIN users u ON u.id = rt.user_id WHERE rt.token_hash = $1',
-      [hash]
-    );
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'invalid refresh token' });
-    }
-    const row = result.rows[0];
-    if (new Date(row.expires_at) < new Date()) {
-      await pool.query('DELETE FROM refresh_tokens WHERE id = $1', [row.id]);
-      return res.status(401).json({ error: 'refresh token expired' });
-    }
-    const user = { id: row.user_id, email: row.email, role: row.role };
-    const accessToken = generateAccessToken(user);
 
-    // Rotate the refresh token: delete the old one and issue a new one (dedicated client for transaction)
-    const newRawRefresh = crypto.randomBytes(40).toString('hex');
-    const newHash = crypto.createHash('sha256').update(newRawRefresh).digest('hex');
-    const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
+    // Perform the entire lookup + expiry check + rotation atomically on one connection
+    // to prevent concurrent reuse of the same refresh token.
     const client = await pool.connect();
+    let accessToken, newRawRefresh;
     try {
       await client.query('BEGIN');
-      await client.query('DELETE FROM refresh_tokens WHERE id = $1', [row.id]);
+
+      const result = await client.query(
+        'SELECT rt.id, rt.user_id, rt.expires_at, u.email, u.role FROM refresh_tokens rt JOIN users u ON u.id = rt.user_id WHERE rt.token_hash = $1 FOR UPDATE',
+        [hash]
+      );
+      if (result.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(401).json({ error: 'invalid refresh token' });
+      }
+      const row = result.rows[0];
+      if (new Date(row.expires_at) < new Date()) {
+        await client.query('DELETE FROM refresh_tokens WHERE id = $1', [row.id]);
+        await client.query('COMMIT');
+        return res.status(401).json({ error: 'refresh token expired' });
+      }
+
+      accessToken = generateAccessToken({ id: row.user_id, email: row.email, role: row.role });
+
+      // Rotate: delete old token, insert new one
+      newRawRefresh = crypto.randomBytes(40).toString('hex');
+      const newHash = crypto.createHash('sha256').update(newRawRefresh).digest('hex');
+      const newExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+      const deleteResult = await client.query('DELETE FROM refresh_tokens WHERE id = $1', [row.id]);
+      if (deleteResult.rowCount !== 1) {
+        // Token was already consumed by a concurrent request
+        await client.query('ROLLBACK');
+        return res.status(401).json({ error: 'refresh token already used' });
+      }
       await client.query(
         'INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)',
         [row.user_id, newHash, newExpiresAt]
       );
       await client.query('COMMIT');
     } catch (txErr) {
-      await client.query('ROLLBACK');
+      await client.query('ROLLBACK').catch(() => {});
       logger.error('[auth] refresh token rotation error', { error: txErr.message });
       return res.status(500).json({ error: 'internal server error' });
     } finally {

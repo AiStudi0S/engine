@@ -32,15 +32,24 @@ const kafka = new Kafka({ clientId: 'scheduler-service', brokers: (process.env.K
 const producer = kafka.producer();
 let producerReady = false;
 
-(async () => {
-  try {
-    await producer.connect();
-    producerReady = true;
-    logger.info('Kafka producer connected');
-  } catch (err) {
-    logger.error('Kafka producer connection failed', { error: err.message });
+async function connectKafkaProducer(retries = 6, baseDelayMs = 2000) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      await producer.connect();
+      producerReady = true;
+      logger.info('Kafka producer connected');
+      return;
+    } catch (err) {
+      logger.error(`Kafka producer connection failed (attempt ${attempt}/${retries})`, { error: err.message });
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, baseDelayMs * attempt));
+      }
+    }
   }
-})();
+  logger.error('Kafka producer could not connect after all retries — scheduled jobs will fail until service restart');
+}
+
+connectKafkaProducer();
 
 const JOB_QUEUE_NAME = 'brand-os-jobs';
 const queue = new Queue(JOB_QUEUE_NAME, { connection });
@@ -58,21 +67,27 @@ const worker = new Worker(
     logger.info('processing job', { jobType: job.data.jobType, jobId: job.id });
     const { jobType, payload, dbJobId } = job.data;
 
-    await pool.query("UPDATE scheduled_jobs SET status='running', updated_at=NOW() WHERE id=$1", [dbJobId]).catch(() => {});
+    await pool.query("UPDATE scheduled_jobs SET status='running', updated_at=NOW() WHERE id=$1", [dbJobId]).catch((e) => {
+      logger.warn('failed to update job status to running', { dbJobId, error: e.message });
+    });
 
     const topic = KAFKA_TOPIC_MAP[jobType] || 'analytics.metrics';
     if (!producerReady) {
       throw new Error('Kafka producer not ready — cannot publish job event');
     }
+    // Publish payload fields at the top level so downstream consumers (notification-service,
+    // analytics-service) can read them without unwrapping. Job metadata is included under _ prefixed keys.
     await producer.send({
       topic,
-      messages: [{ key: dbJobId, value: JSON.stringify({ jobType, payload, jobId: dbJobId, timestamp: new Date().toISOString() }) }],
+      messages: [{ key: dbJobId, value: JSON.stringify({ ...payload, _jobType: jobType, _jobId: dbJobId, _timestamp: new Date().toISOString() }) }],
     });
 
     await pool.query(
       "UPDATE scheduled_jobs SET status='completed', result=$1, updated_at=NOW() WHERE id=$2",
       [JSON.stringify({ topic, timestamp: new Date().toISOString() }), dbJobId]
-    ).catch(() => {});
+    ).catch((e) => {
+      logger.warn('failed to update job status to completed', { dbJobId, error: e.message });
+    });
 
     return { success: true };
   },
@@ -85,7 +100,9 @@ worker.on('failed', async (job, err) => {
     await pool.query(
       "UPDATE scheduled_jobs SET status='failed', error=$1, updated_at=NOW() WHERE id=$2",
       [err.message, job.data.dbJobId]
-    ).catch(() => {});
+    ).catch((e) => {
+      logger.warn('failed to update job status to failed', { dbJobId: job.data.dbJobId, error: e.message });
+    });
   }
 });
 
