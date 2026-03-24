@@ -46,7 +46,8 @@ async function connectKafkaProducer(retries = 6, baseDelayMs = 2000) {
       }
     }
   }
-  logger.error('Kafka producer could not connect after all retries — scheduled jobs will fail until service restart');
+  logger.error('Kafka producer could not connect after all retries — exiting so container restarts and recovers');
+  process.exit(1);
 }
 
 connectKafkaProducer();

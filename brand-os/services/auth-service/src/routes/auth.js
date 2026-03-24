@@ -140,7 +140,9 @@ router.post('/refresh', async (req, res) => {
       );
       await client.query('COMMIT');
     } catch (txErr) {
-      await client.query('ROLLBACK').catch(() => {});
+      await client.query('ROLLBACK').catch((rbErr) => {
+        logger.warn('[auth] ROLLBACK failed after rotation error', { error: rbErr.message });
+      });
       logger.error('[auth] refresh token rotation error', { error: txErr.message });
       return res.status(500).json({ error: 'internal server error' });
     } finally {

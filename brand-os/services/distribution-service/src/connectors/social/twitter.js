@@ -8,7 +8,7 @@ const crypto = require('crypto');
  * which can produce invalid OAuth 1.0a signatures when credentials contain those chars.
  */
 function rfc3986Encode(str) {
-  return encodeURIComponent(String(str)).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
+  return encodeURIComponent(String(str)).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0')}`);
 }
 
 /**
