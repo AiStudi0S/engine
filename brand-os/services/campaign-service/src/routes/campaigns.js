@@ -45,7 +45,11 @@ function validate(body) {
   if (!Array.isArray(platforms) || platforms.length === 0) throw new Error('platforms must be a non-empty array');
   const invalid = platforms.filter((p) => !ALLOWED_PLATFORMS.includes(p));
   if (invalid.length > 0) throw new Error(`invalid platform(s): ${invalid.join(', ')}`);
-  if (budget !== undefined && (isNaN(budget) || budget < 0)) throw new Error('budget cannot be negative');
+  if (budget !== undefined) {
+    if (budget === null || !Number.isFinite(Number(budget)) || Number(budget) < 0) {
+      throw new Error('budget must be a non-negative number');
+    }
+  }
 }
 
 // GET /api/campaigns - list with pagination

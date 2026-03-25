@@ -39,6 +39,28 @@ class InstagramConnector {
       );
       const containerId = containerRes.data.id;
 
+      // For video/Reels, the media container is processed asynchronously.
+      // Poll the container status until it is FINISHED (or PUBLISHED) before calling media_publish.
+      if (videoUrl) {
+        const MAX_POLLS = 20;
+        const POLL_INTERVAL_MS = 3000;
+        for (let i = 0; i < MAX_POLLS; i++) {
+          await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+          const statusRes = await axios.get(`${this.baseUrl}/${containerId}`, {
+            params: { fields: 'status_code', access_token: this.accessToken },
+            timeout: 10000,
+          });
+          const statusCode = statusRes.data.status_code;
+          if (statusCode === 'FINISHED' || statusCode === 'PUBLISHED') break;
+          if (statusCode === 'ERROR' || statusCode === 'EXPIRED') {
+            throw new Error(`Instagram media container failed with status: ${statusCode}`);
+          }
+          if (i === MAX_POLLS - 1) {
+            throw new Error('Instagram media container did not finish processing within the timeout period');
+          }
+        }
+      }
+
       const publishRes = await axios.post(
         `${this.baseUrl}/${this.accountId}/media_publish`,
         { creation_id: containerId, access_token: this.accessToken },

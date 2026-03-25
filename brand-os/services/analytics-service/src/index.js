@@ -35,6 +35,7 @@ async function startKafkaConsumer() {
     await consumer.connect();
     await consumer.subscribe({ topic: 'analytics.metrics', fromBeginning: false });
     await consumer.subscribe({ topic: 'campaign.events', fromBeginning: false });
+    await consumer.subscribe({ topic: 'campaign.created', fromBeginning: false });
     await consumer.run({
       eachMessage: async ({ topic, message }) => {
         try {
@@ -45,7 +46,7 @@ async function startKafkaConsumer() {
             // Scheduler-service publishes payload fields at the top level
             // (e.g. { campaign_id, event_type, ..., _jobType, _jobId }).
             ({ campaign_id: campaignId, platform = 'unknown', event_type: eventType, metric, value = 0, metadata = {} } = data);
-          } else if (topic === 'campaign.events') {
+          } else if (topic === 'campaign.events' || topic === 'campaign.created') {
             const event = data.event || data.eventType || 'campaign_event';
             campaignId = data.data?.id || data.campaign_id;
             platform = data.data?.platform || null;

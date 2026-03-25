@@ -127,6 +127,11 @@ async function startKafkaConsumer() {
           if (!user_id || !channel || !title) return;
           const allowed_channels = ['email', 'push', 'sms'];
           if (!allowed_channels.includes(channel)) return;
+          // For email, a recipient address is required — drop the message if missing
+          if (channel === 'email' && !metadata.email && !metadata.to) {
+            logger.warn('notifications.send: email notification missing recipient address, dropping', { user_id, title });
+            return;
+          }
           const normalizedBody = body || '';
           const id = uuidv4();
           await pool.query(

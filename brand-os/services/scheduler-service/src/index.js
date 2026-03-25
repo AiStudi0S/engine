@@ -130,6 +130,14 @@ app.post('/api/schedules', async (req, res) => {
       [dbJobId, type, JSON.stringify(payload), scheduledAtDate, 'pending']
     );
 
+    if (cronExpression) {
+      // Validate cron pattern: must have 5 or 6 space-separated fields
+      const cronParts = cronExpression.trim().split(/\s+/);
+      if (cronParts.length < 5 || cronParts.length > 6) {
+        return res.status(400).json({ error: 'cronExpression must be a valid cron pattern (5 or 6 fields)' });
+      }
+    }
+
     const delay = scheduledAt ? Math.max(0, scheduledAtDate.getTime() - Date.now()) : 0;
     const jobOptions = cronExpression ? { repeat: { pattern: cronExpression } } : { delay };
 
@@ -140,7 +148,9 @@ app.post('/api/schedules', async (req, res) => {
     const bullJobIdToStore = cronExpression
       ? (bullJob.opts?.repeat?.key || String(bullJob.id))
       : String(bullJob.id);
-    await pool.query('UPDATE scheduled_jobs SET bull_job_id=$1 WHERE id=$2', [bullJobIdToStore, dbJobId]).catch(() => {});
+    await pool.query('UPDATE scheduled_jobs SET bull_job_id=$1 WHERE id=$2', [bullJobIdToStore, dbJobId]).catch((e) => {
+      logger.warn('failed to persist bull_job_id — job cancellation may be unreliable', { dbJobId, error: e.message });
+    });
 
     return res.status(201).json({ id: dbJobId, bullJobId: bullJob.id, type, payload, scheduledAt: scheduledAtDate, status: 'pending' });
   } catch (err) {
