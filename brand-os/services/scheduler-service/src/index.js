@@ -119,6 +119,14 @@ app.post('/api/schedules', async (req, res) => {
       return res.status(400).json({ error: 'scheduledAt or cronExpression is required' });
     }
 
+    if (cronExpression) {
+      // Validate cron pattern: must have 5 or 6 space-separated fields
+      const cronParts = cronExpression.trim().split(/\s+/);
+      if (cronParts.length < 5 || cronParts.length > 6) {
+        return res.status(400).json({ error: 'cronExpression must be a valid cron pattern (5 or 6 fields)' });
+      }
+    }
+
     const dbJobId = uuidv4();
     const scheduledAtDate = scheduledAt ? new Date(scheduledAt) : new Date();
     if (scheduledAt && isNaN(scheduledAtDate.getTime())) {
@@ -129,14 +137,6 @@ app.post('/api/schedules', async (req, res) => {
       'INSERT INTO scheduled_jobs (id, job_type, payload, scheduled_at, status) VALUES ($1,$2,$3,$4,$5)',
       [dbJobId, type, JSON.stringify(payload), scheduledAtDate, 'pending']
     );
-
-    if (cronExpression) {
-      // Validate cron pattern: must have 5 or 6 space-separated fields
-      const cronParts = cronExpression.trim().split(/\s+/);
-      if (cronParts.length < 5 || cronParts.length > 6) {
-        return res.status(400).json({ error: 'cronExpression must be a valid cron pattern (5 or 6 fields)' });
-      }
-    }
 
     const delay = scheduledAt ? Math.max(0, scheduledAtDate.getTime() - Date.now()) : 0;
     const jobOptions = cronExpression ? { repeat: { pattern: cronExpression } } : { delay };

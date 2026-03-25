@@ -44,6 +44,7 @@ class InstagramConnector {
       if (videoUrl) {
         const MAX_POLLS = 20;
         const POLL_INTERVAL_MS = 3000;
+        let finished = false;
         for (let i = 0; i < MAX_POLLS; i++) {
           await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
           const statusRes = await axios.get(`${this.baseUrl}/${containerId}`, {
@@ -51,13 +52,16 @@ class InstagramConnector {
             timeout: 10000,
           });
           const statusCode = statusRes.data.status_code;
-          if (statusCode === 'FINISHED' || statusCode === 'PUBLISHED') break;
+          if (statusCode === 'FINISHED' || statusCode === 'PUBLISHED') {
+            finished = true;
+            break;
+          }
           if (statusCode === 'ERROR' || statusCode === 'EXPIRED') {
             throw new Error(`Instagram media container failed with status: ${statusCode}`);
           }
-          if (i === MAX_POLLS - 1) {
-            throw new Error('Instagram media container did not finish processing within the timeout period');
-          }
+        }
+        if (!finished) {
+          throw new Error('Instagram media container did not finish processing within the timeout period');
         }
       }
 
