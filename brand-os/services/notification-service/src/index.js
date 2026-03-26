@@ -164,6 +164,10 @@ app.post('/api/notifications', async (req, res) => {
     if (!allowed_channels.includes(channel)) {
       return res.status(400).json({ error: `channel must be one of: ${allowed_channels.join(', ')}` });
     }
+    // For email, a recipient address is required before inserting/sending
+    if (channel === 'email' && !metadata.email && !metadata.to) {
+      return res.status(400).json({ error: 'metadata.email or metadata.to is required for email notifications' });
+    }
     const id = uuidv4();
     await pool.query(
       'INSERT INTO notifications (id, user_id, type, channel, title, body, status, metadata) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',

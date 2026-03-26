@@ -159,7 +159,8 @@ router.put('/:id', async (req, res) => {
     }
     const setClauses = Object.keys(updates).map((k, i) => `${k} = $${i + 1}`);
     setClauses.push(`updated_at = NOW()`);
-    const values = Object.values(updates).map((v) => typeof v === 'object' ? JSON.stringify(v) : v);
+    // Only JSON-encode non-null objects (e.g. JSONB metadata); leave scalars and null as-is.
+    const values = Object.values(updates).map((v) => (v !== null && typeof v === 'object') ? JSON.stringify(v) : v);
     values.push(req.params.id);
     const result = await pool.query(
       `UPDATE leads SET ${setClauses.join(', ')} WHERE id = $${values.length} RETURNING *`,

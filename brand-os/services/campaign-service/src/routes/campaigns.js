@@ -26,7 +26,10 @@ let producerReady = false;
 })();
 
 async function publishEvent(eventType, data) {
-  if (!producerReady) return;
+  if (!producerReady) {
+    logger.warn('Kafka producer not ready, skipping event publish', { eventType, dataId: data && data.id });
+    return;
+  }
   try {
     const topic = eventType === 'campaign.created' ? 'campaign.created' : 'campaign.events';
     await producer.send({

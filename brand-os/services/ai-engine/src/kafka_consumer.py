@@ -54,13 +54,18 @@ def start_kafka_consumer() -> threading.Thread:
                         "priority": "normal",
                     }
                     producer.send("agent.ai-engine.out", response)
-                    producer.flush()
+                    # Do not flush per-message — let the producer batch for throughput.
+                    # Flushing happens on shutdown (finally block).
                 except Exception as exc:
                     logger.error("AI Engine message processing error: %s", exc)
 
         except Exception as exc:
             logger.warning("AI Engine Kafka consumer failed to start: %s", exc)
         finally:
+            try:
+                producer.flush()
+            except Exception:
+                pass
             loop.close()
 
     thread = threading.Thread(target=_run, daemon=True)
