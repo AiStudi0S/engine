@@ -64,8 +64,8 @@ def start_kafka_consumer() -> threading.Thread:
         finally:
             try:
                 producer.flush()
-            except Exception:
-                pass
+            except Exception as flush_exc:
+                logger.warning("AI Engine Kafka producer flush on shutdown failed: %s", flush_exc)
             loop.close()
 
     thread = threading.Thread(target=_run, daemon=True)
