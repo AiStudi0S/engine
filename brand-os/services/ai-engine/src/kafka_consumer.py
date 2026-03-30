@@ -19,6 +19,8 @@ def start_kafka_consumer() -> threading.Thread:
 
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
+        consumer = None
+        producer = None
         try:
             from kafka import KafkaConsumer, KafkaProducer  # type: ignore
 
@@ -62,10 +64,11 @@ def start_kafka_consumer() -> threading.Thread:
         except Exception as exc:
             logger.warning("AI Engine Kafka consumer failed to start: %s", exc)
         finally:
-            try:
-                producer.flush()
-            except Exception as flush_exc:
-                logger.warning("AI Engine Kafka producer flush on shutdown failed: %s", flush_exc)
+            if producer is not None:
+                try:
+                    producer.flush()
+                except Exception as flush_exc:
+                    logger.warning("AI Engine Kafka producer flush on shutdown failed: %s", flush_exc)
             loop.close()
 
     thread = threading.Thread(target=_run, daemon=True)

@@ -157,6 +157,10 @@ router.put('/:id', async (req, res) => {
       }
       updates.score = parsedScore;
     }
+    // metadata is JSONB NOT NULL — coerce explicit null to an empty object
+    if (updates.metadata === null) {
+      updates.metadata = {};
+    }
     const setClauses = Object.keys(updates).map((k, i) => `${k} = $${i + 1}`);
     setClauses.push(`updated_at = NOW()`);
     // Only JSON-encode non-null objects (e.g. JSONB metadata); leave scalars and null as-is.

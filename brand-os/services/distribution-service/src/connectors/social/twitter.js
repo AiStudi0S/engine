@@ -106,7 +106,7 @@ class TwitterConnector {
         url: `https://twitter.com/i/web/status/${response.data.data.id}`,
       };
     } catch (err) {
-      const status = err.response?.status;
+      const status = err.response?.status ?? 'unknown';
       const errorMsg = err.response?.data?.detail || err.message;
       throw new Error(`Twitter API error (${status}): ${errorMsg}`);
     }
