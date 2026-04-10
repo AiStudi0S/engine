@@ -9,7 +9,7 @@
     },
     {
       "name": "campaign.publish",
-      "description": "Campaign publishing jobs consumed by distribution-agent",
+      "description": "Campaign publishing jobs consumed by distribution-service",
       "partitions": 3,
       "replication": 1,
       "config": { "retention.ms": 86400000 }

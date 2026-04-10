@@ -2,6 +2,7 @@
 
 const axios = require('axios');
 const crypto = require('crypto');
+const logger = require('../../logger');
 
 /**
  * RFC3986 percent-encoding. `encodeURIComponent` leaves `!'()*` unescaped,
@@ -131,7 +132,13 @@ class TwitterConnector {
         retweets: metrics.retweet_count || 0,
         clicks: metrics.url_link_clicks || 0,
       };
-    } catch {
+    } catch (err) {
+      if (!this.bearerToken) {
+        logger.warn('Twitter getAnalytics: TWITTER_BEARER_TOKEN is not set', { postId });
+      } else {
+        const status = err.response?.status ?? 'unknown';
+        logger.warn('Twitter getAnalytics failed', { postId, status, error: err.message });
+      }
       return { postId, impressions: 0, likes: 0, retweets: 0, clicks: 0 };
     }
   }
