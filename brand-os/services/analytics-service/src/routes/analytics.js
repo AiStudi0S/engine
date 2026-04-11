@@ -92,8 +92,8 @@ module.exports = function createAnalyticsRouter(pool) {
       );
       const stats = { totalEvents: 0, activeCampaigns: parseInt(campaignCountResult.rows[0].active_campaigns, 10), byEventType: {} };
       eventsResult.rows.forEach((row) => {
-        stats.byEventType[row.event_type] = { count: parseInt(row.count), total: parseFloat(row.total) };
-        stats.totalEvents += parseInt(row.count);
+        stats.byEventType[row.event_type] = { count: parseInt(row.count, 10), total: parseFloat(row.total) };
+        stats.totalEvents += parseInt(row.count, 10);
       });
       return res.json(stats);
     } catch (err) {

@@ -205,7 +205,6 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://brandos:${POSTGRES_PASSWORD:-changeme}@postgres:5432/brandos
-      - REDIS_URL=redis://redis:6379
       - KAFKA_BROKERS=kafka:9092
       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
       - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL:-noreply@brandos.ai}
@@ -214,8 +213,6 @@ services:
       - VAPID_SUBJECT=${VAPID_SUBJECT:-mailto:admin@brandos.ai}
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
       kafka-init:
         condition: service_completed_successfully

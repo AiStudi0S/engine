@@ -15,15 +15,22 @@ const kafka = new Kafka({ clientId: 'campaign-service', brokers: (process.env.KA
 const producer = kafka.producer();
 let producerReady = false;
 
-(async () => {
-  try {
-    await producer.connect();
-    producerReady = true;
-    logger.info('Kafka producer connected');
-  } catch (err) {
-    logger.error('Kafka producer connection failed', { error: err.message });
+(async function connectKafkaProducerWithRetry(retries = 6, baseDelayMs = 2000) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      await producer.connect();
+      producerReady = true;
+      logger.info('Kafka producer connected');
+      return;
+    } catch (err) {
+      logger.error(`Kafka producer connection failed (attempt ${attempt}/${retries})`, { error: err.message });
+      if (attempt < retries) {
+        await new Promise((resolve) => setTimeout(resolve, baseDelayMs * attempt));
+      }
+    }
   }
-})();
+  logger.error('Kafka producer could not connect after all retries — events will be dropped');
+}());
 
 async function publishEvent(eventType, data) {
   if (!producerReady) {

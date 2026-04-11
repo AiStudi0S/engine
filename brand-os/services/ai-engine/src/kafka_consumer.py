@@ -43,6 +43,11 @@ def start_kafka_consumer() -> threading.Thread:
                     payload = message.value
                     intent = payload.get("intent")
                     data = payload.get("payload", {})
+                    # Coerce intent to string and data to dict to prevent attribute errors downstream
+                    if not isinstance(intent, str):
+                        intent = str(intent) if intent is not None else ""
+                    if not isinstance(data, dict):
+                        data = {}
                     correlation_id = payload.get("correlation_id")
                     logger.info("AI Engine received intent: %s", intent)
 

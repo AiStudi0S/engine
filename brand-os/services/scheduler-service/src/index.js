@@ -24,7 +24,13 @@ app.use('/api/', limiter);
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 const redisUrl = new URL(REDIS_URL);
-const connection = { host: redisUrl.hostname, port: parseInt(redisUrl.port || '6379', 10) };
+const connection = {
+  host: redisUrl.hostname,
+  port: parseInt(redisUrl.port || '6379', 10),
+  ...(redisUrl.username && { username: redisUrl.username }),
+  ...(redisUrl.password && { password: redisUrl.password }),
+  ...(redisUrl.pathname && redisUrl.pathname.length > 1 && { db: (() => { const n = parseInt(redisUrl.pathname.slice(1), 10); return isNaN(n) ? 0 : n; })() }),
+};
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
@@ -50,8 +56,6 @@ async function connectKafkaProducer(retries = 6, baseDelayMs = 2000) {
   process.exit(1);
 }
 
-connectKafkaProducer();
-
 const JOB_QUEUE_NAME = 'brand-os-jobs';
 const queue = new Queue(JOB_QUEUE_NAME, { connection });
 
@@ -62,7 +66,12 @@ const KAFKA_TOPIC_MAP = {
   sync_analytics: 'analytics.metrics',
 };
 
-const worker = new Worker(
+// Await producer connection before starting the Worker so jobs are not processed
+// before Kafka is ready, preventing avoidable failures during startup.
+(async () => {
+  await connectKafkaProducer();
+
+  const worker = new Worker(
   JOB_QUEUE_NAME,
   async (job) => {
     logger.info('processing job', { jobType: job.data.jobType, jobId: job.id });
@@ -95,7 +104,7 @@ const worker = new Worker(
   { connection }
 );
 
-worker.on('failed', async (job, err) => {
+  worker.on('failed', async (job, err) => {
   logger.error('job failed', { jobId: job?.id, error: err.message });
   if (job?.data?.dbJobId) {
     await pool.query(
@@ -105,6 +114,10 @@ worker.on('failed', async (job, err) => {
       logger.warn('failed to update job status to failed', { dbJobId: job.data.dbJobId, error: e.message });
     });
   }
+});
+})().catch((err) => {
+  logger.error('startup failed', { error: err.message });
+  process.exit(1);
 });
 
 // POST /api/schedules
