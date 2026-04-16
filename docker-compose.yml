@@ -11,6 +11,9 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # NOTE: init.sql runs only when the postgres_data volume is empty (first start).
+      # Schema changes after the initial bootstrap require a manual migration or volume reset.
+      - ./brand-os/infra/db/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U brandos"]
       interval: 10s
@@ -55,6 +58,49 @@ services:
       retries: 10
       start_period: 30s
 
+  kafka-init:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command: |
+      set -euo pipefail
+      echo 'Waiting for Kafka to be ready...'
+      cub kafka-ready -b kafka:9092 1 30
+      echo 'Creating Kafka topics...'
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic campaign.events --partitions 6 --replication-factor 1 --config retention.ms=604800000 --config cleanup.policy=delete
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic campaign.publish --partitions 3 --replication-factor 1 --config retention.ms=86400000
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic campaign.created --partitions 2 --replication-factor 1 --config retention.ms=604800000
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic analytics.metrics --partitions 6 --replication-factor 1 --config retention.ms=604800000
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic leads.inbound --partitions 3 --replication-factor 1 --config retention.ms=604800000
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic approval.required --partitions 1 --replication-factor 1 --config retention.ms=259200000
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic notifications.send --partitions 2 --replication-factor 1 --config retention.ms=86400000
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.brand-intelligence.in --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.brand-intelligence.out --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.content-studio.in --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.content-studio.out --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.campaign-strategy.in --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.campaign-strategy.out --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.distribution.in --partitions 2 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.distribution.out --partitions 2 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.audience-growth.in --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.audience-growth.out --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.revenue-optimization.in --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.revenue-optimization.out --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.analytics.in --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.analytics.out --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.compliance.in --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.compliance.out --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.persona-creator.in --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.persona-creator.out --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.micro-creator.in --partitions 4 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.micro-creator.out --partitions 4 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.ai-engine.in --partitions 1 --replication-factor 1
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic agent.ai-engine.out --partitions 1 --replication-factor 1
+      echo 'All Kafka topics created successfully.'
+    restart: on-failure
+
   auth-service:
     build: ./brand-os/services/auth-service
     ports:
@@ -84,8 +130,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
 
   scheduler-service:
     build: ./brand-os/services/scheduler-service
@@ -93,13 +139,16 @@ services:
       - "3003:3003"
     environment:
       - NODE_ENV=production
+      - DATABASE_URL=postgresql://brandos:${POSTGRES_PASSWORD:-changeme}@postgres:5432/brandos
       - REDIS_URL=redis://redis:6379
       - KAFKA_BROKERS=kafka:9092
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
 
   analytics-service:
     build: ./brand-os/services/analytics-service
@@ -107,10 +156,13 @@ services:
       - "3004:3004"
     environment:
       - NODE_ENV=production
+      - DATABASE_URL=postgresql://brandos:${POSTGRES_PASSWORD:-changeme}@postgres:5432/brandos
       - KAFKA_BROKERS=kafka:9092
     depends_on:
-      kafka:
+      postgres:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
 
   ai-engine:
     build: ./brand-os/services/ai-engine
@@ -121,8 +173,8 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - KAFKA_BROKERS=kafka:9092
     depends_on:
-      kafka:
-        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
 
   distribution-service:
     build: ./brand-os/services/distribution-service
@@ -130,10 +182,21 @@ services:
       - "3005:3005"
     environment:
       - NODE_ENV=production
+      - DATABASE_URL=postgresql://brandos:${POSTGRES_PASSWORD:-changeme}@postgres:5432/brandos
       - KAFKA_BROKERS=kafka:9092
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - TWITTER_BEARER_TOKEN=${TWITTER_BEARER_TOKEN}
+      - TWITTER_API_KEY=${TWITTER_API_KEY}
+      - TWITTER_API_SECRET=${TWITTER_API_SECRET}
+      - TWITTER_ACCESS_TOKEN=${TWITTER_ACCESS_TOKEN}
+      - TWITTER_ACCESS_TOKEN_SECRET=${TWITTER_ACCESS_TOKEN_SECRET}
+      - INSTAGRAM_ACCESS_TOKEN=${INSTAGRAM_ACCESS_TOKEN}
+      - INSTAGRAM_ACCOUNT_ID=${INSTAGRAM_ACCOUNT_ID}
     depends_on:
-      kafka:
+      postgres:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
 
   notification-service:
     build: ./brand-os/services/notification-service
@@ -141,10 +204,18 @@ services:
       - "3006:3006"
     environment:
       - NODE_ENV=production
-      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://brandos:${POSTGRES_PASSWORD:-changeme}@postgres:5432/brandos
+      - KAFKA_BROKERS=kafka:9092
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL:-noreply@brandos.ai}
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - VAPID_SUBJECT=${VAPID_SUBJECT:-mailto:admin@brandos.ai}
     depends_on:
-      redis:
+      postgres:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
 
   crm-service:
     build: ./brand-os/services/crm-service
@@ -154,9 +225,12 @@ services:
       - NODE_ENV=production
       - DATABASE_URL=postgresql://brandos:${POSTGRES_PASSWORD:-changeme}@postgres:5432/brandos
       - REDIS_URL=redis://redis:6379
+      - KAFKA_BROKERS=kafka:9092
     depends_on:
       postgres:
         condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:

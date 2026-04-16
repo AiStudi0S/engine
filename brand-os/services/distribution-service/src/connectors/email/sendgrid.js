@@ -1,12 +1,62 @@
 'use strict';
 
-async function sendEmail({ to, subject, html, text, apiKey }) {
-  if (!to || !subject || (!html && !text)) {
-    throw new Error('to, subject, and content (html or text) are required');
+const axios = require('axios');
+const { v4: uuidv4 } = require('uuid');
+
+class SendGridConnector {
+  constructor(config = {}) {
+    this.name = 'email';
+    this.apiKey = config.apiKey || process.env.SENDGRID_API_KEY;
+    this.fromEmail = config.fromEmail || process.env.SENDGRID_FROM_EMAIL || 'noreply@brandos.ai';
+    this.fromName = config.fromName || process.env.SENDGRID_FROM_NAME || 'Brand OS';
+    this.baseUrl = 'https://api.sendgrid.com/v3';
   }
-  // TODO: implement SendGrid v3 API
-  console.log(`[sendgrid-connector] Sending email to ${to}: ${subject}`);
-  return { messageId: `sg_${Date.now()}`, to, subject, status: 'queued' };
+
+  async sendEmail({ to, subject, html, text, templateId, templateData = {} }) {
+    if (!to || !subject) throw new Error('to and subject are required');
+    if (!html && !text && !templateId) throw new Error('html, text, or templateId is required');
+    if (!this.apiKey) throw new Error('SendGrid API key not configured');
+
+    const toList = Array.isArray(to) ? to : [to];
+    const personalizations = toList.map((email) => ({
+      to: [{ email: typeof email === 'string' ? email : email.email }],
+      dynamic_template_data: templateData,
+    }));
+
+    const body = {
+      personalizations,
+      from: { email: this.fromEmail, name: this.fromName },
+      subject,
+    };
+
+    if (templateId) {
+      body.template_id = templateId;
+    } else {
+      body.content = [];
+      if (text) body.content.push({ type: 'text/plain', value: text });
+      if (html) body.content.push({ type: 'text/html', value: html });
+    }
+
+    try {
+      const response = await axios.post(`${this.baseUrl}/mail/send`, body, {
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        timeout: 15000,
+      });
+
+      const messageId = response.headers['x-message-id'] || `sg_${uuidv4()}`;
+      return { messageId, to: toList, subject, status: 'sent' };
+    } catch (err) {
+      const errorMsg = err.response?.data?.errors?.[0]?.message || err.message;
+      throw new Error(`SendGrid error: ${errorMsg}`);
+    }
+  }
+
+  async publish(post) {
+    return this.sendEmail(post);
+  }
 }
 
-module.exports = { sendEmail };
+module.exports = SendGridConnector;

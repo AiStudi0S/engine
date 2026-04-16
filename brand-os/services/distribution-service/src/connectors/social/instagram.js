@@ -1,10 +1,121 @@
 'use strict';
 
-async function publishPost({ caption, imageUrl, accessToken }) {
-  if (!caption) throw new Error('caption is required');
-  // TODO: implement Instagram Graph API (media container + publish)
-  console.log(`[instagram-connector] Publishing: ${caption.slice(0, 50)}...`);
-  return { id: `ig_${Date.now()}`, caption, platform: 'instagram' };
+const axios = require('axios');
+
+class InstagramConnector {
+  constructor(config = {}) {
+    this.name = 'instagram';
+    this.accessToken = config.accessToken || process.env.INSTAGRAM_ACCESS_TOKEN;
+    this.accountId = config.accountId || process.env.INSTAGRAM_ACCOUNT_ID;
+    this.baseUrl = 'https://graph.facebook.com/v18.0';
+  }
+
+  async publish(post) {
+    const { caption, imageUrl, videoUrl } = post;
+    if (!caption) throw new Error('caption is required');
+    if (!this.accessToken || !this.accountId) {
+      throw new Error('Instagram credentials not configured');
+    }
+
+    try {
+      const containerPayload = {
+        caption,
+        access_token: this.accessToken,
+      };
+
+      if (videoUrl) {
+        containerPayload.media_type = 'REELS';
+        containerPayload.video_url = videoUrl;
+      } else if (imageUrl) {
+        containerPayload.image_url = imageUrl;
+      } else {
+        throw new Error('imageUrl or videoUrl is required for Instagram posts');
+      }
+
+      const containerRes = await axios.post(
+        `${this.baseUrl}/${this.accountId}/media`,
+        containerPayload,
+        { timeout: 15000 }
+      );
+      const containerId = containerRes.data.id;
+
+      // For video/Reels, the media container is processed asynchronously.
+      // Poll the container status until it is FINISHED (or PUBLISHED) before calling media_publish.
+      if (videoUrl) {
+        const MAX_POLLS = 20;
+        const POLL_INTERVAL_MS = 3000;
+        let finished = false;
+        for (let i = 0; i < MAX_POLLS; i++) {
+          await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+          const statusRes = await axios.get(`${this.baseUrl}/${containerId}`, {
+            params: { fields: 'status_code', access_token: this.accessToken },
+            timeout: 10000,
+          });
+          const statusCode = statusRes.data.status_code;
+          if (statusCode === 'FINISHED' || statusCode === 'PUBLISHED') {
+            finished = true;
+            break;
+          }
+          if (statusCode === 'ERROR' || statusCode === 'EXPIRED') {
+            throw new Error(`Instagram media container failed with status: ${statusCode}`);
+          }
+        }
+        if (!finished) {
+          throw new Error('Instagram media container did not finish processing within the timeout period');
+        }
+      }
+
+      const publishRes = await axios.post(
+        `${this.baseUrl}/${this.accountId}/media_publish`,
+        { creation_id: containerId, access_token: this.accessToken },
+        { timeout: 15000 }
+      );
+
+      const mediaId = publishRes.data.id;
+
+      // Fetch the canonical permalink (media_id is not a shortcode)
+      let permalink = null;
+      try {
+        const detailRes = await axios.get(`${this.baseUrl}/${mediaId}`, {
+          params: { fields: 'permalink', access_token: this.accessToken },
+          timeout: 10000,
+        });
+        permalink = detailRes.data.permalink || null;
+      } catch {
+        // Non-fatal: proceed without a permalink
+      }
+
+      return {
+        id: mediaId,
+        caption,
+        platform: 'instagram',
+        url: permalink,
+      };
+    } catch (err) {
+      const errorMsg = err.response?.data?.error?.message || err.message;
+      throw new Error(`Instagram API error: ${errorMsg}`);
+    }
+  }
+
+  async getAnalytics(postId) {
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/${postId}/insights`,
+        {
+          params: {
+            metric: 'impressions,reach,likes,comments,shares',
+            access_token: this.accessToken,
+          },
+          timeout: 10000,
+        }
+      );
+      const metrics = {};
+      (response.data.data || []).forEach((m) => { metrics[m.name] = m.values[0]?.value || 0; });
+      return { postId, ...metrics };
+    } catch {
+      return { postId, impressions: 0, reach: 0, likes: 0 };
+    }
+  }
 }
 
-module.exports = { publishPost };
+module.exports = InstagramConnector;
